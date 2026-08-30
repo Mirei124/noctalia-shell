@@ -2710,7 +2710,6 @@ void PanelManager::onConfigReloaded() {
         m_config->config().shell.panel.glassPreset, m_config->config().shell.panel.glassRefractionStrength
     );
     material.opacity = m_config->config().shell.panel.glassOpacity;
-    material.blurMix = m_config->config().shell.panel.glassBlurIntensity;
     glass->setMaterial(material);
     if (const auto* output = m_platform->findOutputByWl(m_output); output != nullptr) {
       glass->setOutput(output->name, 0.0F, 0.0F);
@@ -2723,7 +2722,6 @@ void PanelManager::onConfigReloaded() {
         m_config->config().shell.panel.glassPreset, m_config->config().shell.panel.glassRefractionStrength
     );
     material.opacity = m_config->config().shell.panel.glassOpacity;
-    material.blurMix = m_config->config().shell.panel.glassBlurIntensity;
     static_cast<GlassNode*>(m_glassNode)->setMaterial(material);
     m_glassNode->setVisible(glassEnabled);
     m_glassNode->setPosition(m_bgNode->x(), m_bgNode->y());
@@ -2868,7 +2866,6 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
             m_config->config().shell.panel.glassPreset, m_config->config().shell.panel.glassRefractionStrength
         );
         material.opacity = m_config->config().shell.panel.glassOpacity;
-        material.blurMix = m_config->config().shell.panel.glassBlurIntensity;
         glass->setMaterial(material);
         if (const auto* output = m_platform->findOutputByWl(m_output); output != nullptr) {
           glass->setOutput(output->name, 0.0F, 0.0F);
@@ -3042,7 +3039,8 @@ void PanelManager::placePanelChrome() {
       m_panelOutputVisualRect = panelInputRectForSurface(
           m_layerSurface->anchor(), m_layerSurface->marginTop(), m_layerSurface->marginRight(),
           m_layerSurface->marginBottom(), m_layerSurface->marginLeft(), output->effectiveLogicalWidth(),
-          output->effectiveLogicalHeight(), width, height, m_panelInsetX, m_panelInsetY,
+          output->effectiveLogicalHeight(), static_cast<std::uint32_t>(std::lround(w)),
+          static_cast<std::uint32_t>(std::lround(h)), m_panelInsetX, m_panelInsetY,
           static_cast<std::uint32_t>(std::lround(panelW)), static_cast<std::uint32_t>(std::lround(panelH))
       );
     }

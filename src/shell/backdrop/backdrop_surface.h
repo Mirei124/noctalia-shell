@@ -16,6 +16,7 @@ public:
   void setSharedGl(GlSharedContext* shared) noexcept { m_shared = shared; }
   void setOutputName(std::uint32_t outputName) noexcept { m_outputName = outputName; }
   void setGlassEnabled(bool enabled) noexcept;
+  void setGlassBlurIntensity(float v) noexcept;
   void setBlurIntensity(float v) noexcept;
   void setTintIntensity(float v) noexcept;
   void setTintColor(float r, float g, float b) noexcept;
@@ -45,6 +46,7 @@ private:
   GlSharedContext* m_shared = nullptr;
   std::uint32_t m_outputName = 0;
   bool m_glassEnabled = false;
+  float m_glassBlurIntensity = 0.15F;
   float m_blurIntensity = 0.5F;
   float m_tintIntensity = 0.3F;
   float m_tintR = 0.0F;

@@ -18,9 +18,6 @@ struct GlassMaterial {
   float fresnel = 0.06F;
   float noise = 0.001F;
   float borderWidth = 0.8F;
-  // Continuous blend from the sharp wallpaper source to the pre-blurred
-  // source. Keeping this in the material makes zero genuinely sharp.
-  float blurMix = 1.0F;
 
   [[nodiscard]] static GlassMaterial fromPreset(std::string_view preset, float refractionStrength = 1.0F) {
     GlassMaterial material;

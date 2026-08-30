@@ -311,15 +311,13 @@ bool Dock::initialize(CompositorPlatform& platform, ConfigService* config, Rende
         if (sameExceptGlassMaterial
             && glassOpacity == m_lastGlassOpacity
             && panel.glassPreset == m_lastGlassPreset
-            && panel.glassRefractionStrength == m_lastGlassRefractionStrength
-            && panel.glassBlurIntensity == m_lastGlassBlurIntensity) {
+            && panel.glassRefractionStrength == m_lastGlassRefractionStrength) {
           return;
         }
         if (sameExceptGlassMaterial) {
           m_lastGlassOpacity = glassOpacity;
           m_lastGlassPreset = panel.glassPreset;
           m_lastGlassRefractionStrength = panel.glassRefractionStrength;
-          m_lastGlassBlurIntensity = panel.glassBlurIntensity;
           updateGlassMaterials();
           return;
         }
@@ -349,7 +347,6 @@ bool Dock::initialize(CompositorPlatform& platform, ConfigService* config, Rende
   m_lastGlassOpacity = m_config->config().shell.panel.glassOpacity;
   m_lastGlassPreset = m_config->config().shell.panel.glassPreset;
   m_lastGlassRefractionStrength = m_config->config().shell.panel.glassRefractionStrength;
-  m_lastGlassBlurIntensity = m_config->config().shell.panel.glassBlurIntensity;
   m_lastBarLayerStack = barLayerStackSignature(m_config->config());
 
   if (!dockMayBeEnabled(cfg)) {
@@ -368,7 +365,6 @@ void Dock::reload() {
   m_lastGlassOpacity = m_config->config().shell.panel.glassOpacity;
   m_lastGlassPreset = m_config->config().shell.panel.glassPreset;
   m_lastGlassRefractionStrength = m_config->config().shell.panel.glassRefractionStrength;
-  m_lastGlassBlurIntensity = m_config->config().shell.panel.glassBlurIntensity;
   m_lastBarLayerStack = barLayerStackSignature(m_config->config());
 
   if (!dockMayBeEnabled(cfg)) {
@@ -413,7 +409,6 @@ void Dock::updateGlassMaterials() {
     }
     auto material = GlassMaterial::fromPreset(panel.glassPreset, panel.glassRefractionStrength);
     material.opacity = panel.glassOpacity;
-    material.blurMix = panel.glassBlurIntensity;
     static_cast<GlassNode*>(instance->glass)->setMaterial(material);
   }
   requestRedraw();
