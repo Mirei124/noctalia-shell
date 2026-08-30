@@ -4,6 +4,7 @@
 #include "render/backend/render_backend.h"
 #include "render/core/shader_program.h"
 #include "render/programs/blur_program.h"
+#include "render/programs/glass_program.h"
 #include "render/programs/glyph_program.h"
 #include "render/programs/image_program.h"
 #include "render/programs/rect_program.h"
@@ -48,6 +49,7 @@ public:
       const Mat3& transform
   ) override;
   void drawImage(const RenderImageDraw& draw) override;
+  void drawGlass(const RenderGlassDraw& draw) override;
   void drawGlyph(const RenderGlyphDraw& draw) override;
   void drawSpinner(
       float surfaceWidth, float surfaceHeight, float width, float height, const SpinnerStyle& style,
@@ -85,6 +87,7 @@ private:
   ImageProgram m_imageProgram;
   GlyphProgram m_glyphProgram;
   SpinnerProgram m_spinnerProgram;
+  GlassProgram m_glassProgram;
   BlurProgram m_blurProgram;
   ShaderProgram m_fullscreenTextureProgram;
   ShaderProgram m_fullscreenTintProgram;

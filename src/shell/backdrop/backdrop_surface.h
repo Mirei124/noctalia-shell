@@ -14,6 +14,8 @@ public:
   ~BackdropSurface() override;
 
   void setSharedGl(GlSharedContext* shared) noexcept { m_shared = shared; }
+  void setOutputName(std::uint32_t outputName) noexcept { m_outputName = outputName; }
+  void setGlassEnabled(bool enabled) noexcept;
   void setBlurIntensity(float v) noexcept;
   void setTintIntensity(float v) noexcept;
   void setTintColor(float r, float g, float b) noexcept;
@@ -34,11 +36,15 @@ protected:
 private:
   WallpaperRenderer m_wallpaperRenderer;
   CachedLayer m_layer;
+  CachedLayer m_glassSharpLayer;
+  CachedLayer m_glassBlurLayer;
 
   std::uint32_t m_bufW = 0;
   std::uint32_t m_bufH = 0;
 
   GlSharedContext* m_shared = nullptr;
+  std::uint32_t m_outputName = 0;
+  bool m_glassEnabled = false;
   float m_blurIntensity = 0.5F;
   float m_tintIntensity = 0.3F;
   float m_tintR = 0.0F;

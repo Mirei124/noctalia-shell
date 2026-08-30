@@ -50,6 +50,7 @@ namespace shell::dock {
     float slideHiddenDx = 0.0F;
     float slideHiddenDy = 0.0F;
     Box* shadow = nullptr;
+    Node* glass = nullptr;
     Box* panel = nullptr;
     DockPanelGeometry panelGeometry;
     InputArea* viewport = nullptr;

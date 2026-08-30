@@ -1,13 +1,18 @@
 #include "shell/backdrop/backdrop_surface.h"
 
 #include "render/backend/render_backend.h"
+#include "render/glass/glass_background_registry.h"
 #include "wayland/wayland_connection.h"
 
+#include <algorithm>
 #include <stdexcept>
 #include <wayland-client-protocol.h>
 
 BackdropSurface::~BackdropSurface() {
+  GlassBackgroundRegistry::instance().remove(m_outputName);
   m_wallpaperRenderer.makeCurrent();
+  m_glassBlurLayer.destroy();
+  m_glassSharpLayer.destroy();
   m_layer.destroy();
 }
 
@@ -66,6 +71,10 @@ void BackdropSurface::render() {
       .tintColor = rgba(m_tintR, m_tintG, m_tintB, 1.0F),
       .tintIntensity = m_tintIntensity,
   };
+  // Glass owns the blur/tint treatment of its own sampled texture. Do not
+  // post-process the full-screen backdrop as well, or the desktop outside
+  // every glass surface would become softly blurred and tinted.
+  const auto baseOptions = m_glassEnabled ? BackdropPostProcessOptions{} : options;
 
   if (!m_layer.dirty()) {
     return;
@@ -76,8 +85,52 @@ void BackdropSurface::render() {
     if (scratch == nullptr) {
       return;
     }
-    m_wallpaperRenderer.renderBackdropContent(target, *scratch, options);
+    m_wallpaperRenderer.renderBackdropContent(target, *scratch, baseOptions);
   });
+
+  if (m_glassEnabled) {
+    m_glassSharpLayer.resize(*backend, m_bufW, m_bufH);
+    const auto blurWidth = std::max(1U, m_bufW / 2U);
+    const auto blurHeight = std::max(1U, m_bufH / 2U);
+    m_glassBlurLayer.resize(*backend, blurWidth, blurHeight);
+
+    m_glassSharpLayer.ensure([&](RenderFramebuffer& target) {
+      // No post-processing is requested, so the scratch parameter is unused.
+      // Reusing target avoids allocating a second full-resolution framebuffer.
+      m_wallpaperRenderer.renderBackdropContent(target, target, {});
+    });
+    m_glassBlurLayer.ensure([&](RenderFramebuffer& target) {
+      auto* scratch = m_glassBlurLayer.scratch();
+      if (scratch != nullptr) {
+        m_wallpaperRenderer.renderBackdropContent(
+            target, *scratch,
+            BackdropPostProcessOptions{
+                // The source stays consistently blurred; glass materials
+                // blend it continuously with the sharp source. This avoids
+                // the half-resolution blur threshold making low slider
+                // values look non-monotonic.
+                .blurRadius = 20.0F,
+                .blurRounds = options.blurRounds,
+            }
+        );
+      }
+    });
+
+    GlassBackgroundRegistry::instance().publish(
+        m_outputName,
+        GlassBackgroundSnapshot{
+            .sharpTexture = m_glassSharpLayer.texture(),
+            .blurredTexture = m_glassBlurLayer.texture(),
+            .bufferWidth = m_bufW,
+            .bufferHeight = m_bufH,
+            .logicalWidth = width(),
+            .logicalHeight = height(),
+            .flipY = true,
+        }
+    );
+  } else {
+    GlassBackgroundRegistry::instance().remove(m_outputName);
+  }
 
   requestFrame();
   m_wallpaperRenderer.presentTexture(m_layer.texture());
@@ -89,6 +142,7 @@ void BackdropSurface::setBlurIntensity(float v) noexcept {
   }
   m_blurIntensity = v;
   m_layer.invalidate();
+  m_glassBlurLayer.invalidate();
 }
 
 void BackdropSurface::setTintIntensity(float v) noexcept {
@@ -114,15 +168,40 @@ void BackdropSurface::setWallpaperState(TextureId tex, float imgW, float imgH, W
       tex, {}, imgW, imgH, 0.0F, 0.0F, 0.0F, WallpaperTransition::Fade, fillMode, TransitionParams{}
   );
   m_layer.invalidate();
+  m_glassSharpLayer.invalidate();
+  m_glassBlurLayer.invalidate();
+}
+
+void BackdropSurface::setGlassEnabled(bool enabled) noexcept {
+  if (m_glassEnabled == enabled) {
+    return;
+  }
+  m_glassEnabled = enabled;
+  if (!enabled) {
+    GlassBackgroundRegistry::instance().remove(m_outputName);
+    m_wallpaperRenderer.makeCurrent();
+    m_glassSharpLayer.destroy();
+    m_glassBlurLayer.destroy();
+  } else {
+    m_glassSharpLayer.invalidate();
+    m_glassBlurLayer.invalidate();
+  }
+  m_layer.invalidate();
 }
 
 void BackdropSurface::onGpuResourcesInvalidated() {
+  GlassBackgroundRegistry::instance().remove(m_outputName);
   m_wallpaperRenderer.invalidateGpuResources();
+  m_glassBlurLayer.destroy();
+  m_glassSharpLayer.destroy();
   m_layer.destroy();
   requestRedraw();
 }
 
 void BackdropSurface::prepareForGraphicsReset() noexcept {
+  GlassBackgroundRegistry::instance().remove(m_outputName);
+  m_glassBlurLayer.abandon();
+  m_glassSharpLayer.abandon();
   m_layer.abandon();
   m_wallpaperRenderer.prepareForGraphicsReset();
 }
@@ -133,6 +212,8 @@ void BackdropSurface::restoreAfterGraphicsReset() {
   }
   m_wallpaperRenderer.restoreAfterGraphicsReset(*m_shared);
   m_layer.invalidate();
+  m_glassSharpLayer.invalidate();
+  m_glassBlurLayer.invalidate();
 }
 
 void BackdropSurface::finishGraphicsResetRecovery() noexcept { m_wallpaperRenderer.finishGraphicsResetRecovery(); }
