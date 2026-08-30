@@ -23,7 +23,7 @@ uniform sampler2D u_sharp;
 uniform sampler2D u_blurred;
 uniform vec2 u_rect_size;
 uniform vec2 u_output_size;
-uniform vec2 u_output_origin;
+uniform mat3 u_output_transform;
 uniform float u_flip_y;
 uniform vec4 u_tint;
 uniform vec4 u_border;
@@ -93,7 +93,8 @@ void main() {
   // large panels retain a readable edge (3–8 logical pixels).
   float edgeWidth = clamp(min(u_rect_size.x, u_rect_size.y) * 0.16, 3.0, 8.0);
   float edge = smoothstep(-edgeWidth, 0.0, dist);
-  vec2 uv = (u_output_origin + local) / u_output_size;
+  vec2 outputLocal = (u_output_transform * vec3(local, 1.0)).xy;
+  vec2 uv = outputLocal / u_output_size;
   if (u_flip_y > 0.5) uv.y = 1.0 - uv.y;
   vec2 shift = normal * edge * u_material.y / u_output_size;
   vec2 chroma = normal * edge * u_material.z / u_output_size;
@@ -140,7 +141,7 @@ void GlassProgram::ensureInitialized() {
   m_surfaceSize = glGetUniformLocation(id, "u_surface_size");
   m_rectSize = glGetUniformLocation(id, "u_rect_size");
   m_outputSize = glGetUniformLocation(id, "u_output_size");
-  m_outputOrigin = glGetUniformLocation(id, "u_output_origin");
+  m_outputTransform = glGetUniformLocation(id, "u_output_transform");
   m_flipY = glGetUniformLocation(id, "u_flip_y");
   m_sharp = glGetUniformLocation(id, "u_sharp");
   m_blurred = glGetUniformLocation(id, "u_blurred");
@@ -159,7 +160,7 @@ void GlassProgram::ensureInitialized() {
       || m_surfaceSize < 0
       || m_rectSize < 0
       || m_outputSize < 0
-      || m_outputOrigin < 0
+      || m_outputTransform < 0
       || m_flipY < 0
       || m_sharp < 0
       || m_blurred < 0
@@ -174,9 +175,9 @@ void GlassProgram::ensureInitialized() {
 void GlassProgram::destroy() { m_program.destroy(); }
 void GlassProgram::abandon() noexcept { m_program.abandon(); }
 void GlassProgram::draw(
-    TextureId sharp, TextureId blurred, float sw, float sh, float w, float h, float ow, float oh, float ox, float oy,
-    bool flipY, const GlassMaterial& m, const CornerShapes& corners, const RectInsets& inset, const Radii& radii,
-    const Mat3& transform
+    TextureId sharp, TextureId blurred, float sw, float sh, float w, float h, float ow, float oh,
+    const Mat3& outputTransform, bool flipY, const GlassMaterial& m, const CornerShapes& corners,
+    const RectInsets& inset, const Radii& radii, const Mat3& transform
 ) const {
   if (!m_program.isValid() || sharp == TextureId{} || blurred == TextureId{} || w <= 0 || h <= 0 || ow <= 0 || oh <= 0)
     return;
@@ -191,7 +192,7 @@ void GlassProgram::draw(
   glUniform2f(m_surfaceSize, sw, sh);
   glUniform2f(m_rectSize, w, h);
   glUniform2f(m_outputSize, ow, oh);
-  glUniform2f(m_outputOrigin, ox, oy);
+  glUniformMatrix3fv(m_outputTransform, 1, GL_FALSE, outputTransform.m.data());
   glUniform1f(m_flipY, flipY ? 1.F : 0.F);
   glUniform4f(m_tint, m.tint.r, m.tint.g, m.tint.b, m.tint.a);
   glUniform4f(m_border, m.border.r, m.border.g, m.border.b, m.borderWidth);
