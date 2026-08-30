@@ -52,5 +52,6 @@ private:
   bool m_lastWallpaperEnabled = true;
   WallpaperFillMode m_lastWallpaperFillMode = WallpaperFillMode::Crop;
   bool m_lastGlassEnabled = false;
+  float m_lastGlassBlurIntensity = 0.15F;
   std::vector<std::unique_ptr<BackdropInstance>> m_instances;
 };

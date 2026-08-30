@@ -87,7 +87,6 @@ private:
   float m_lastGlassOpacity = 0.62F;
   std::string m_lastGlassPreset = "subtle";
   float m_lastGlassRefractionStrength = 1.0F;
-  float m_lastGlassBlurIntensity = 0.15F;
   std::vector<std::string> m_lastPinnedConfig;
   std::vector<std::string> m_lastBarLayerStack;
   std::vector<DesktopEntry> m_pinnedEntries;

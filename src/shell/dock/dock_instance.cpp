@@ -248,7 +248,6 @@ namespace shell::dock {
             deps.config.config().shell.panel.glassPreset, deps.config.config().shell.panel.glassRefractionStrength
         );
         material.opacity = deps.config.config().shell.panel.glassOpacity;
-        material.blurMix = deps.config.config().shell.panel.glassBlurIntensity;
         glass->setMaterial(material);
         instance.glass = instance.slideRoot->addChild(std::move(glass));
       }

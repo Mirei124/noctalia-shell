@@ -18,8 +18,9 @@ void main() {
 }
 )";
 
-  // Separable Gaussian blur with a fixed 81-tap loop (-40..40).
-  // u_radius controls how many taps are active; taps beyond u_radius are skipped.
+  // Separable Gaussian blur with a fixed 81-tap loop (-40..40). Fractional
+  // tap coverage makes sub-pixel radii change continuously instead of
+  // snapping when they cross an integer pixel.
   constexpr char kFragmentShader[] = R"(
 precision highp float;
 uniform sampler2D u_texture;
@@ -31,11 +32,13 @@ varying vec2 v_texcoord;
 void main() {
     vec4 color = vec4(0.0);
     float total = 0.0;
-    float sigma = max(u_radius / 2.0, 0.0001);
+    float sigma = max(u_radius / 2.0, 0.5);
     for (int i = -40; i <= 40; i++) {
-        if (abs(float(i)) > u_radius) continue;
+        float distance = abs(float(i));
+        float coverage = clamp(u_radius - distance + 1.0, 0.0, 1.0);
+        if (coverage <= 0.0) continue;
         float fi = float(i);
-        float w = exp(-fi * fi / (2.0 * sigma * sigma));
+        float w = exp(-fi * fi / (2.0 * sigma * sigma)) * coverage;
         vec2 offset = u_direction * u_texelSize * fi;
         color += texture2D(u_texture, v_texcoord + offset) * w;
         total += w;

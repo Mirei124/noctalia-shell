@@ -208,7 +208,7 @@ void WallpaperRenderer::renderBackdropContent(
 
   renderToFramebuffer(target);
 
-  if (options.blurRadius >= 0.5F && options.blurRounds > 0) {
+  if (options.blurRadius > 0.0F && options.blurRounds > 0) {
     if (!scratch.valid()) {
       return;
     }
@@ -261,7 +261,7 @@ void WallpaperRenderer::restoreAfterGraphicsReset(GlSharedContext& shared) {
 }
 
 void WallpaperRenderer::blur(RenderFramebuffer& target, RenderFramebuffer& scratch, float radius, int rounds) {
-  if (m_backend == nullptr || !target.valid() || !scratch.valid() || radius < 0.5F || rounds <= 0) {
+  if (m_backend == nullptr || !target.valid() || !scratch.valid() || radius <= 0.0F || rounds <= 0) {
     return;
   }
 

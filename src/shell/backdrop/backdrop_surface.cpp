@@ -90,9 +90,7 @@ void BackdropSurface::render() {
 
   if (m_glassEnabled) {
     m_glassSharpLayer.resize(*backend, m_bufW, m_bufH);
-    const auto blurWidth = std::max(1U, m_bufW / 2U);
-    const auto blurHeight = std::max(1U, m_bufH / 2U);
-    m_glassBlurLayer.resize(*backend, blurWidth, blurHeight);
+    m_glassBlurLayer.resize(*backend, m_bufW, m_bufH);
 
     m_glassSharpLayer.ensure([&](RenderFramebuffer& target) {
       // No post-processing is requested, so the scratch parameter is unused.
@@ -105,11 +103,9 @@ void BackdropSurface::render() {
         m_wallpaperRenderer.renderBackdropContent(
             target, *scratch,
             BackdropPostProcessOptions{
-                // The source stays consistently blurred; glass materials
-                // blend it continuously with the sharp source. This avoids
-                // the half-resolution blur threshold making low slider
-                // values look non-monotonic.
-                .blurRadius = 20.0F,
+                // Independent from [backdrop]: this radius only affects the
+                // wallpaper texture sampled by glass surfaces.
+                .blurRadius = m_glassBlurIntensity * 20.0F,
                 .blurRounds = options.blurRounds,
             }
         );
@@ -141,6 +137,17 @@ void BackdropSurface::setBlurIntensity(float v) noexcept {
     return;
   }
   m_blurIntensity = v;
+  m_layer.invalidate();
+  m_glassBlurLayer.invalidate();
+}
+
+void BackdropSurface::setGlassBlurIntensity(float v) noexcept {
+  if (m_glassBlurIntensity == v) {
+    return;
+  }
+  m_glassBlurIntensity = v;
+  // render() returns early when the presentation layer is clean, so mark it
+  // too; it remains an unprocessed wallpaper when glass is active.
   m_layer.invalidate();
   m_glassBlurLayer.invalidate();
 }

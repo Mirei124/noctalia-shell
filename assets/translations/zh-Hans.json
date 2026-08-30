@@ -2532,7 +2532,7 @@
           "label": "玻璃预设"
         },
         "glass-blur-intensity": {
-          "description": "仅玻璃表面采样的壁纸模糊强度",
+          "description": "控制仅供玻璃表面采样的壁纸模糊半径（0–20 px）",
           "label": "模糊强度"
         },
         "glass-refraction-strength": {

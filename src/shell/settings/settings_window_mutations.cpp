@@ -101,6 +101,19 @@ void SettingsWindow::showTransientStatus(std::string message, bool isError) {
 }
 
 void SettingsWindow::setSettingOverride(std::vector<std::string> path, ConfigOverrideValue value) {
+  const bool enablesGlass = path == std::vector<std::string>{"shell", "panel", "transparency_mode"}
+      && std::holds_alternative<std::string>(value)
+      && std::get<std::string>(value) == "glass";
+  if (enablesGlass) {
+    // Glass samples the wallpaper backdrop; persist both changes atomically so
+    // selecting the effect cannot leave it with no source texture.
+    std::vector<std::pair<std::vector<std::string>, ConfigOverrideValue>> overrides;
+    overrides.emplace_back(std::move(path), std::move(value));
+    overrides.emplace_back(std::vector<std::string>{"backdrop", "enabled"}, true);
+    setSettingOverrides(std::move(overrides));
+    return;
+  }
+
   if (path.size() == 2 && path[0] == "shell" && path[1] == "font_family") {
     text::invalidateFontWeightCatalogCache();
   }

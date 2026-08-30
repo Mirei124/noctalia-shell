@@ -2553,7 +2553,7 @@
           "label": "Glass preset"
         },
         "glass-blur-intensity": {
-          "description": "Wallpaper blur sampled by glass surfaces only",
+          "description": "Controls the 0–20 px wallpaper blur radius sampled only by glass surfaces",
           "label": "Blur strength"
         },
         "glass-refraction-strength": {

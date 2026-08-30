@@ -206,7 +206,6 @@ private:
   float m_lastGlassOpacity = 0.62F;
   std::string m_lastGlassPreset = "subtle";
   float m_lastGlassRefractionStrength = 1.0F;
-  float m_lastGlassBlurIntensity = 0.15F;
   // Plugin enable/disable changes which widget types resolve, so a plugins-only
   // config change must also rebuild widgets.
   PluginsConfig m_lastPlugins;
