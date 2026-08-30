@@ -1498,6 +1498,13 @@ namespace noctalia::config::schema {
     const Schema<ShellConfig::PanelConfig>& shellPanelSchema() {
       static const Schema<ShellConfig::PanelConfig> s = {
           enumField(&ShellConfig::PanelConfig::transparencyMode, "transparency_mode", kPanelTransparencyModes),
+          field(&ShellConfig::PanelConfig::glassPreset, "glass_preset"),
+          field(&ShellConfig::PanelConfig::glassOpacity, "glass_opacity", kUnitRange),
+          field(&ShellConfig::PanelConfig::glassBlurIntensity, "glass_blur_intensity", kUnitRange),
+          field(
+              &ShellConfig::PanelConfig::glassRefractionStrength, "glass_refraction_strength",
+              kGlassMaterialStrengthRange
+          ),
           field(&ShellConfig::PanelConfig::borders, "borders"),
           colorField(&ShellConfig::PanelConfig::borderColor, "border_color"),
           field(&ShellConfig::PanelConfig::borderWidth, "border_width", kPanelBorderWidthRange),

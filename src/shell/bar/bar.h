@@ -153,6 +153,9 @@ private:
   void syncBarAutoHideInputRegion(BarInstance& instance) const;
   void syncBarExclusiveZone(BarInstance& instance);
   void syncBarSurfaceChrome(BarInstance& instance);
+  // Material-only changes must not recreate layer-shell surfaces: doing so
+  // visibly flashes the bar while a settings slider is being dragged.
+  void updateGlassMaterials();
   void clearInstancePointerState(BarInstance& instance);
   bool instanceAcceptsPointerInput(const BarInstance& instance) const noexcept;
   bool shouldReserveExclusiveZone(const BarInstance& instance) const noexcept;
@@ -216,6 +219,11 @@ private:
   std::vector<BarConfig> m_lastBars;
   std::unordered_map<std::string, WidgetConfig> m_lastWidgets;
   ShadowStyle m_lastShadow;
+  bool m_lastGlassEnabled = false;
+  float m_lastGlassOpacity = 0.62F;
+  std::string m_lastGlassPreset = "subtle";
+  float m_lastGlassRefractionStrength = 1.0F;
+  float m_lastGlassBlurIntensity = 0.15F;
   // Plugin enable/disable changes which widget types resolve, so a plugins-only
   // config change must also rebuild widgets.
   PluginsConfig m_lastPlugins;

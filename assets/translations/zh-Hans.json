@@ -1600,6 +1600,12 @@
         "none": "无",
         "start": "起始"
       },
+      "glass-preset": {
+        "bold": "强烈",
+        "clear": "清透",
+        "frosted": "磨砂",
+        "subtle": "轻透"
+      },
       "edge": {
         "bottom": "底部",
         "left": "左侧",
@@ -3014,6 +3020,22 @@
         "wallpaper-show-names": {
           "description": "在壁纸选择器中为每个缩略图标注文件名",
           "label": "显示文件名"
+        },
+        "glass-opacity": {
+          "description": "壁纸派生玻璃材质的不透明度",
+          "label": "玻璃透明度"
+        },
+        "glass-preset": {
+          "description": "壁纸派生玻璃的基础材质效果",
+          "label": "玻璃预设"
+        },
+        "glass-blur-intensity": {
+          "description": "仅玻璃表面采样的壁纸模糊强度",
+          "label": "模糊强度"
+        },
+        "glass-refraction-strength": {
+          "description": "边缘折射和 RGB 色散的直接倍率",
+          "label": "折射强度"
         }
       },
       "power": {

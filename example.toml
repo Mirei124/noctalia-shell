@@ -64,6 +64,10 @@ alpha     = 0.55                    # multiplied by each component's background 
 
 [shell.panel]
 transparency_mode     = "solid"     # solid | soft | glass; controls floating-panel opacity and card translucency
+glass_preset          = "subtle"    # subtle | clear | frosted | bold; glass material treatment
+glass_opacity         = 1.0         # 0.0–1.0; wallpaper-derived glass material opacity
+glass_blur_intensity  = 0.15        # 0.0–1.0; wallpaper blur sampled by glass only
+glass_refraction_strength = 6.0     # 0.0–9.0; direct multiplier for refraction and RGB edge split
 borders               = true        # panel shell outline and in-panel section cards
 border_color          = "outline_variant"   # floating panel outline color: theme role token or #RRGGBB
 border_width          = 1.0         # floating panel outline width in px, 0 hides the stroke

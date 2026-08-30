@@ -136,6 +136,8 @@ _noctalia_ui_sources = files(
   'render/core/stb_image_resize_impl.cpp',
   'render/gl_shared_context.cpp',
   'render/programs/blur_program.cpp',
+  'render/programs/glass_program.cpp',
+  'render/glass/glass_background_registry.cpp',
   'render/programs/glyph_program.cpp',
   'render/programs/image_program.cpp',
   'render/programs/rect_program.cpp',
