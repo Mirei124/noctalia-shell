@@ -15,7 +15,7 @@ public:
   void abandon() noexcept;
   void draw(
       TextureId sharp, TextureId blurred, float surfaceWidth, float surfaceHeight, float width, float height,
-      float outputWidth, float outputHeight, float outputX, float outputY, bool flipY, const GlassMaterial& material,
+      float outputWidth, float outputHeight, const Mat3& outputTransform, bool flipY, const GlassMaterial& material,
       const CornerShapes& cornerShapes, const RectInsets& logicalInset, const Radii& radii,
       const Mat3& transform = Mat3::identity()
   ) const;
@@ -26,7 +26,7 @@ private:
   GLint m_surfaceSize = -1;
   GLint m_rectSize = -1;
   GLint m_outputSize = -1;
-  GLint m_outputOrigin = -1;
+  GLint m_outputTransform = -1;
   GLint m_flipY = -1;
   GLint m_sharp = -1;
   GLint m_blurred = -1;

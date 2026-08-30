@@ -5,6 +5,7 @@
 #include "render/core/shared_texture_cache.h"
 #include "render/render_context.h"
 #include "render/render_target.h"
+#include "render/scene/glass_node.h"
 #include "render/scene/node.h"
 #include "scripting/plugin_registry.h"
 #include "shell/desktop/desktop_widget_layout.h"
@@ -362,6 +363,10 @@ void DesktopWidgetsHost::buildScene(DesktopWidgetInstance& instance) {
     auto transformNode = ui::node({});
     instance.transformNode = instance.sceneRoot->addChild(std::move(transformNode));
     if (instance.widget != nullptr) {
+      if (instance.widget->hasVisibleBackground()) {
+        auto glass = std::make_unique<GlassNode>();
+        instance.glass = static_cast<GlassNode*>(instance.transformNode->addChild(std::move(glass)));
+      }
       instance.transformNode->addChild(instance.widget->releaseRoot());
     }
 
@@ -446,11 +451,12 @@ void DesktopWidgetsHost::prepareFrame(DesktopWidgetInstance& instance, bool need
     desktop_widgets::clampStateToOutput(*m_wayland, instance.state, instance.intrinsicWidth, instance.intrinsicHeight);
   }
 
+  const WaylandOutput* output = nullptr;
   float outputW = 1920.0F;
   float outputH = 1080.0F;
   if (m_wayland != nullptr) {
-    if (const WaylandOutput* output = desktop_widgets::resolveStateOutput(*m_wayland, instance.state);
-        output != nullptr) {
+    output = desktop_widgets::resolveStateOutput(*m_wayland, instance.state);
+    if (output != nullptr) {
       outputW = desktop_widgets::outputLogicalWidth(*output);
       outputH = desktop_widgets::outputLogicalHeight(*output);
     }
@@ -472,6 +478,9 @@ void DesktopWidgetsHost::prepareFrame(DesktopWidgetInstance& instance, bool need
         static_cast<float>(instance.surface->width()), static_cast<float>(instance.surface->height())
     );
   }
+  float flipScaleX = 1.0F;
+  float flipScaleY = 1.0F;
+  desktop_widgets::widgetNodeScale(instance.state, flipScaleX, flipScaleY);
   if (instance.transformNode != nullptr) {
     instance.transformNode->setFrameSize(instance.intrinsicWidth, instance.intrinsicHeight);
     instance.transformNode->setPosition(
@@ -479,10 +488,36 @@ void DesktopWidgetsHost::prepareFrame(DesktopWidgetInstance& instance, bool need
         geometry.contentOffsetY - instance.intrinsicHeight * 0.5F
     );
     instance.transformNode->setRotation(instance.state.rotationRad);
-    float flipScaleX = 1.0F;
-    float flipScaleY = 1.0F;
-    desktop_widgets::widgetNodeScale(instance.state, flipScaleX, flipScaleY);
     instance.transformNode->setScale(flipScaleX, flipScaleY);
+  }
+
+  const bool glassEnabled = m_config != nullptr
+      && m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass
+      && instance.widget->hasVisibleBackground();
+  instance.widget->setGlassBackgroundEnabled(glassEnabled);
+  if (instance.glass != nullptr) {
+    instance.glass->setVisible(glassEnabled);
+    if (glassEnabled) {
+      const auto& panel = m_config->config().shell.panel;
+      auto material = GlassMaterial::fromPreset(panel.glassPreset, panel.glassRefractionStrength);
+      material.opacity = panel.glassOpacity;
+      instance.glass->setMaterial(material);
+      instance.glass->setSize(instance.intrinsicWidth, instance.intrinsicHeight);
+
+      const float transformX = geometry.contentOffsetX - instance.intrinsicWidth * 0.5F;
+      const float transformY = geometry.contentOffsetY - instance.intrinsicHeight * 0.5F;
+      const Mat3 outputTransform =
+          Mat3::translation(static_cast<float>(geometry.marginLeft), static_cast<float>(geometry.marginTop))
+          * Mat3::translation(transformX, transformY)
+          * Mat3::translation(instance.intrinsicWidth * 0.5F, instance.intrinsicHeight * 0.5F)
+          * Mat3::rotation(instance.state.rotationRad)
+          * Mat3::scale(flipScaleX, flipScaleY)
+          * Mat3::translation(-instance.intrinsicWidth * 0.5F, -instance.intrinsicHeight * 0.5F);
+      instance.glass->setOutput(output != nullptr ? output->name : 0, 0.0F, 0.0F);
+      instance.glass->setOutputTransform(outputTransform);
+      const float radius = instance.widget->backgroundRadius() * desktop_widgets::widgetContentScale(baseUiScale);
+      instance.glass->setShape(CornerShapes{}, RectInsets{}, Radii(radius));
+    }
   }
 
   if (instance.widget->needsFrameTick()) {

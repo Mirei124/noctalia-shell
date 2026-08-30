@@ -15,6 +15,7 @@
 #include <vector>
 
 class ConfigService;
+class GlassNode;
 class RenderContext;
 class WaylandConnection;
 struct PointerEvent;
@@ -53,6 +54,7 @@ private:
     InputDispatcher inputDispatcher;
     std::unique_ptr<Node> sceneRoot;
     Node* transformNode = nullptr;
+    GlassNode* glass = nullptr;
     std::unique_ptr<DesktopWidget> widget;
     float intrinsicWidth = 0.0F;
     float intrinsicHeight = 0.0F;

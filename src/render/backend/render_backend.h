@@ -95,8 +95,8 @@ struct RenderGlassDraw {
   float height = 0.0F;
   float outputWidth = 0.0F;
   float outputHeight = 0.0F;
-  float outputX = 0.0F;
-  float outputY = 0.0F;
+  // Maps glass-local logical coordinates to output-local logical coordinates.
+  Mat3 outputTransform = Mat3::identity();
   bool flipY = true;
   GlassMaterial material{};
   CornerShapes cornerShapes{};

@@ -487,6 +487,11 @@ void DesktopWidgetsController::handleConfigReload() {
       if (m_config != nullptr && m_config->lastChange().plugins) {
         m_host->reloadPluginWidgets();
       }
+      // Desktop-widget state is unchanged when the global panel material
+      // changes, so it would otherwise keep the previous host background.
+      if (m_config != nullptr && m_config->lastChange().shell) {
+        m_host->requestRedraw();
+      }
     }
   } else if (calendarChanged && m_editor != nullptr) {
     m_editor->requestLayout();

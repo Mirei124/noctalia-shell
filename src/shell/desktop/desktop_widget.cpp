@@ -166,6 +166,14 @@ void DesktopWidget::setBackgroundStyle(const ColorSpec& color, float radius, flo
   m_bgPadding = padding;
 }
 
+void DesktopWidget::setGlassBackgroundEnabled(bool enabled) {
+  if (m_glassBackgroundEnabled == enabled) {
+    return;
+  }
+  m_glassBackgroundEnabled = enabled;
+  applyBackground();
+}
+
 bool DesktopWidget::applySetting(
     const std::string& key, const WidgetSettingValue& value,
     const std::unordered_map<std::string, WidgetSettingValue>& allSettings, Renderer& renderer
@@ -237,7 +245,11 @@ void DesktopWidget::applyBackground() {
   if (m_bgEnabled && m_bgBox != nullptr) {
     m_bgBox->setPosition(0.0F, 0.0F);
     m_bgBox->setSize(boxW, boxH);
-    m_bgBox->setFill(m_bgColor);
+    ColorSpec fill = m_bgColor;
+    if (m_glassBackgroundEnabled) {
+      fill.alpha = 0.0F;
+    }
+    m_bgBox->setFill(fill);
     m_bgBox->setRadius(std::round(m_bgRadius * m_baseScale));
   }
 

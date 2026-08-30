@@ -79,6 +79,10 @@ public:
   // Desktop widget editor keeps widgets visible for layout even when runtime idle-hide applies.
   virtual void setEditorPreview(bool enabled) noexcept { (void)enabled; }
   void setBackgroundStyle(const ColorSpec& color, float radius, float padding);
+  // The host owns the standard background. In glass mode it remains as the
+  // layout/clip shape but becomes transparent so the host GlassNode is the
+  // visible material.
+  void setGlassBackgroundEnabled(bool enabled);
 
   [[nodiscard]] bool hasBackground() const noexcept { return m_bgEnabled; }
   [[nodiscard]] bool hasVisibleBackground() const noexcept;
@@ -170,6 +174,7 @@ protected:
   FrameTickRequestCallback m_frameTickRequestCallback;
 
   bool m_bgEnabled = false;
+  bool m_glassBackgroundEnabled = false;
   ColorSpec m_bgColor;
   float m_bgRadius = 0.0F;
   float m_bgPadding = 0.0F;

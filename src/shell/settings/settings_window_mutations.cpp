@@ -105,11 +105,18 @@ void SettingsWindow::setSettingOverride(std::vector<std::string> path, ConfigOve
       && std::holds_alternative<std::string>(value)
       && std::get<std::string>(value) == "glass";
   if (enablesGlass) {
-    // Glass samples the wallpaper backdrop; persist both changes atomically so
-    // selecting the effect cannot leave it with no source texture.
+    // Glass samples the wallpaper backdrop; persist the material prerequisites
+    // atomically so selecting the effect cannot leave it with no source texture
+    // or a conventional surface shadow layered around it.
     std::vector<std::pair<std::vector<std::string>, ConfigOverrideValue>> overrides;
     overrides.emplace_back(std::move(path), std::move(value));
     overrides.emplace_back(std::vector<std::string>{"backdrop", "enabled"}, true);
+    overrides.emplace_back(std::vector<std::string>{"dock", "shadow"}, false);
+    if (m_config != nullptr) {
+      for (const auto& bar : m_config->config().bars) {
+        overrides.emplace_back(std::vector<std::string>{"bar", bar.name, "shadow"}, false);
+      }
+    }
     setSettingOverrides(std::move(overrides));
     return;
   }

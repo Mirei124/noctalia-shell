@@ -600,7 +600,7 @@ void GlesRenderBackend::drawGlass(const RenderGlassDraw& draw) {
   m_glassProgram.ensureInitialized();
   m_glassProgram.draw(
       draw.sharpTexture, draw.blurredTexture, draw.surfaceWidth, draw.surfaceHeight, draw.width, draw.height,
-      draw.outputWidth, draw.outputHeight, draw.outputX, draw.outputY, draw.flipY, draw.material, draw.cornerShapes,
+      draw.outputWidth, draw.outputHeight, draw.outputTransform, draw.flipY, draw.material, draw.cornerShapes,
       draw.logicalInset, draw.radii, draw.transform
   );
 }
