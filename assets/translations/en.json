@@ -1617,7 +1617,8 @@
         "bold": "Bold",
         "clear": "Clear",
         "frosted": "Frosted",
-        "subtle": "Subtle"
+        "subtle": "Subtle",
+        "tinted": "Tinted"
       },
       "edge": {
         "bottom": "Bottom",
