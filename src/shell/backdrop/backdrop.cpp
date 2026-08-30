@@ -75,6 +75,7 @@ void Backdrop::cacheReloadBaseline() {
   m_lastWallpaperEnabled = cfg.wallpaper.enabled;
   m_lastWallpaperFillMode = cfg.wallpaper.fillMode;
   m_lastGlassEnabled = cfg.shell.panel.transparencyMode == PanelTransparencyMode::Glass;
+  m_lastGlassBlurIntensity = cfg.shell.panel.glassBlurIntensity;
 }
 
 void Backdrop::reload() {
@@ -84,6 +85,7 @@ void Backdrop::reload() {
 
   const auto& cfg = m_config->config();
   const bool glassChanged = (cfg.shell.panel.transparencyMode == PanelTransparencyMode::Glass) != m_lastGlassEnabled;
+  const bool glassBlurChanged = cfg.shell.panel.glassBlurIntensity != m_lastGlassBlurIntensity;
   const bool shouldInstances = shouldHaveInstances();
   const bool recreateNeeded = cfg.backdrop != m_lastBackdropConfig
       || shouldInstances != m_lastShouldHaveInstances
@@ -94,7 +96,8 @@ void Backdrop::reload() {
       && shouldInstances
       && !m_instances.empty()
       && cfg.wallpaper.fillMode == m_lastWallpaperFillMode
-      && !glassChanged) {
+      && !glassChanged
+      && !glassBlurChanged) {
     return;
   }
 
@@ -366,6 +369,7 @@ void Backdrop::updateRendererState(BackdropInstance& inst) {
   inst.surface->setBlurIntensity(ov.blurIntensity);
   inst.surface->setTintIntensity(ov.tintIntensity);
   inst.surface->setGlassEnabled(m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass);
+  inst.surface->setGlassBlurIntensity(m_config->config().shell.panel.glassBlurIntensity);
 
   // Tint color from the current surface role.
   const Color surface = colorForRole(ColorRole::Surface);

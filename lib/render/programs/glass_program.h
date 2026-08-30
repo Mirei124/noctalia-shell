@@ -33,7 +33,6 @@ private:
   GLint m_tint = -1;
   GLint m_border = -1;
   GLint m_material = -1;
-  GLint m_blurMix = -1;
   GLint m_cornerShapes = -1;
   GLint m_logicalInset = -1;
   GLint m_radii = -1;

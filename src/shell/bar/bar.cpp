@@ -1533,7 +1533,6 @@ bool Bar::initialize(const BarServices& services) {
   m_lastGlassOpacity = m_config->config().shell.panel.glassOpacity;
   m_lastGlassPreset = m_config->config().shell.panel.glassPreset;
   m_lastGlassRefractionStrength = m_config->config().shell.panel.glassRefractionStrength;
-  m_lastGlassBlurIntensity = m_config->config().shell.panel.glassBlurIntensity;
   m_lastPlugins = m_config->config().plugins;
   m_config->addReloadCallback(
       [this] {
@@ -1546,15 +1545,13 @@ bool Bar::initialize(const BarServices& services) {
         if (sameExceptGlassMaterial
             && cfg.shell.panel.glassOpacity == m_lastGlassOpacity
             && cfg.shell.panel.glassPreset == m_lastGlassPreset
-            && cfg.shell.panel.glassRefractionStrength == m_lastGlassRefractionStrength
-            && cfg.shell.panel.glassBlurIntensity == m_lastGlassBlurIntensity) {
+            && cfg.shell.panel.glassRefractionStrength == m_lastGlassRefractionStrength) {
           return;
         }
         if (sameExceptGlassMaterial) {
           m_lastGlassOpacity = cfg.shell.panel.glassOpacity;
           m_lastGlassPreset = cfg.shell.panel.glassPreset;
           m_lastGlassRefractionStrength = cfg.shell.panel.glassRefractionStrength;
-          m_lastGlassBlurIntensity = cfg.shell.panel.glassBlurIntensity;
           updateGlassMaterials();
           return;
         }
@@ -1630,7 +1627,6 @@ void Bar::reload() {
   m_lastGlassOpacity = m_config->config().shell.panel.glassOpacity;
   m_lastGlassPreset = m_config->config().shell.panel.glassPreset;
   m_lastGlassRefractionStrength = m_config->config().shell.panel.glassRefractionStrength;
-  m_lastGlassBlurIntensity = m_config->config().shell.panel.glassBlurIntensity;
   m_lastPlugins = m_config->config().plugins;
   m_widgetFactory = std::make_unique<WidgetFactory>(services());
 
@@ -1755,7 +1751,6 @@ void Bar::updateGlassMaterials() {
     }
     auto material = GlassMaterial::fromPreset(panel.glassPreset, panel.glassRefractionStrength);
     material.opacity = panel.glassOpacity;
-    material.blurMix = panel.glassBlurIntensity;
     static_cast<GlassNode*>(instance->glass)->setMaterial(material);
   }
   requestRedraw();
@@ -3545,7 +3540,6 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
           m_config->config().shell.panel.glassPreset, m_config->config().shell.panel.glassRefractionStrength
       );
       material.opacity = m_config->config().shell.panel.glassOpacity;
-      material.blurMix = m_config->config().shell.panel.glassBlurIntensity;
       glass->setMaterial(material);
       instance.glass = instance.slideRoot->addChild(std::move(glass));
     }

@@ -32,7 +32,6 @@ uniform vec4 u_logical_inset;
 uniform vec4 u_radii;
 uniform float u_noise;
 uniform float u_opacity;
-uniform float u_blur_mix;
 // radius, refraction in logical pixels, chromatic aberration in logical pixels,
 // and Fresnel edge intensity. Opacity, noise and border width are separate.
 uniform vec4 u_material;
@@ -114,11 +113,10 @@ void main() {
       texture2D(u_sharp, uv + shift).g,
       texture2D(u_sharp, uv + shift - chroma).b
   );
-  // Blend continuously from the sharp wallpaper source to the pre-blurred
-  // source. At zero, glass is genuinely sharp; at full strength, retain the
-  // previous sharp rim so refraction and RGB separation stay visible.
-  float blurMix = clamp(u_blur_mix, 0.0, 1.0);
-  vec3 sampled = mix(sharp, blurred, blurMix * (1.0 - edge * 0.78));
+  // Refraction needs local contrast. Keep the interior frosted, but let the
+  // rim draw predominantly from the sharp wallpaper so displacement and RGB
+  // separation remain visible even when the glass blur is turned up.
+  vec3 sampled = mix(blurred, sharp, edge * 0.78);
   float rim = pow(clamp(edge, 0.0, 1.0), 2.0) * u_material.w;
   // Tint alpha controls only the material tint. Grain has its own much
   // smaller parameter; coupling it to tint alpha turns the panel into visible
@@ -155,7 +153,6 @@ void GlassProgram::ensureInitialized() {
   m_radii = glGetUniformLocation(id, "u_radii");
   m_noise = glGetUniformLocation(id, "u_noise");
   m_opacity = glGetUniformLocation(id, "u_opacity");
-  m_blurMix = glGetUniformLocation(id, "u_blur_mix");
   // GLSL compilers may eliminate a material uniform when an effect is disabled.
   // Geometry and wallpaper samplers are the required baseline for a Glass draw.
   if (m_position < 0
@@ -171,8 +168,7 @@ void GlassProgram::ensureInitialized() {
       || m_logicalInset < 0
       || m_radii < 0
       || m_noise < 0
-      || m_opacity < 0
-      || m_blurMix < 0)
+      || m_opacity < 0)
     throw std::runtime_error("failed to query required glass shader locations");
 }
 void GlassProgram::destroy() { m_program.destroy(); }
@@ -201,7 +197,6 @@ void GlassProgram::draw(
   glUniform4f(m_border, m.border.r, m.border.g, m.border.b, m.borderWidth);
   glUniform1f(m_noise, m.noise);
   glUniform1f(m_opacity, m.opacity);
-  glUniform1f(m_blurMix, m.blurMix);
   glUniform4f(m_material, m.radius, m.refraction, m.chromaticAberration, m.fresnel);
   glUniformMatrix3fv(m_transform, 1, GL_FALSE, transform.m.data());
   const auto concave = [](CornerShape shape) { return shape == CornerShape::Concave ? 1.0F : 0.0F; };

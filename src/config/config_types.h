@@ -1126,7 +1126,7 @@ struct ShellConfig {
     PanelTransparencyMode transparencyMode = PanelTransparencyMode::Solid;
     std::string glassPreset = "subtle";    // subtle | clear | frosted | bold
     float glassOpacity = 1.0F;             // wallpaper-derived glass material alpha
-    float glassBlurIntensity = 0.15F;      // wallpaper blur sampled by glass only
+    float glassBlurIntensity = 0.3F;      // 0–20 px wallpaper blur radius sampled by glass only
     float glassRefractionStrength = 6.0F;  // 0–9 direct multiplier for refraction and RGB edge split
     bool borders = true;                   // outline on floating panel surfaces
     ColorSpec borderColor = colorSpecFromRole(ColorRole::OutlineVariant);
