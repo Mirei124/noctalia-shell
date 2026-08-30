@@ -28,6 +28,15 @@ struct GlassMaterial {
       material.chromaticAberration = 0.12F;
       material.fresnel = 0.035F;
       material.noise = 0.0F;
+    } else if (preset == "tinted") {
+      // macOS-like readability mode: retain a little wallpaper depth and an
+      // optical rim, but let a white material layer dominate the interior.
+      material.tint = rgba(1.0F, 1.0F, 1.0F, 0.68F);
+      material.border = rgba(1.0F, 1.0F, 1.0F, 0.28F);
+      material.refraction = 0.35F;
+      material.chromaticAberration = 0.08F;
+      material.fresnel = 0.045F;
+      material.noise = 0.0F;
     } else if (preset == "frosted") {
       material.tint = rgba(1.0F, 1.0F, 1.0F, 0.11F);
       material.border = rgba(1.0F, 1.0F, 1.0F, 0.16F);

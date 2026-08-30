@@ -1353,7 +1353,8 @@
         "bold": "强烈",
         "clear": "清透",
         "frosted": "磨砂",
-        "subtle": "轻透"
+        "subtle": "轻透",
+        "tinted": "色调"
       },
       "edge": {
         "bottom": "底部",

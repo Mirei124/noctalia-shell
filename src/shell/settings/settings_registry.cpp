@@ -1146,11 +1146,12 @@ namespace settings {
         asSegmented(plainSelect(
             {{"subtle", "settings.options.glass-preset.subtle"},
              {"clear", "settings.options.glass-preset.clear"},
+             {"tinted", "settings.options.glass-preset.tinted"},
              {"frosted", "settings.options.glass-preset.frosted"},
              {"bold", "settings.options.glass-preset.bold"}},
             cfg.shell.panel.glassPreset
         )),
-        "glass material preset subtle clear frosted bold"
+        "glass material preset subtle clear tinted frosted bold readable white"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Panels, "effects", tr("settings.schema.panels.glass-opacity.label"),
