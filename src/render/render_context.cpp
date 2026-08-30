@@ -8,11 +8,13 @@
 #include "render/core/texture_handle.h"
 #include "render/core/texture_manager.h"
 #include "render/core/wallpaper_types.h"
+#include "render/glass/glass_background_registry.h"
 #include "render/render_target.h"
 #include "render/scene/audio_spectrum_node.h"
 #include "render/scene/countdown_ring_node.h"
 #include "render/scene/effect_node.h"
 #include "render/scene/fancy_audio_visualizer_node.h"
+#include "render/scene/glass_node.h"
 #include "render/scene/glyph_node.h"
 #include "render/scene/graph_node.h"
 #include "render/scene/image_node.h"
@@ -371,6 +373,39 @@ void RenderContext::renderNode(
   }
 
   switch (node->type()) {
+  case NodeType::Glass: {
+    const auto* glass = static_cast<const GlassNode*>(node);
+    const auto snapshot = GlassBackgroundRegistry::instance().snapshotFor(glass->outputName());
+    if (snapshot.has_value() && snapshot->valid()) {
+      auto material = glass->material();
+      material.opacity *= effectiveOpacity;
+      m_backend->drawGlass(
+          RenderGlassDraw{
+              .sharpTexture = snapshot->sharpTexture,
+              .blurredTexture = snapshot->blurredTexture,
+              .surfaceWidth = sw,
+              .surfaceHeight = sh,
+              .width = node->width(),
+              .height = node->height(),
+              .outputWidth = static_cast<float>(snapshot->logicalWidth),
+              .outputHeight = static_cast<float>(snapshot->logicalHeight),
+              .outputX = glass->outputX(),
+              .outputY = glass->outputY(),
+              .flipY = snapshot->flipY,
+              .material = material,
+              .cornerShapes = glass->cornerShapes(),
+              .logicalInset = glass->logicalInset(),
+              .radii = glass->radii(),
+              .transform = worldTransform,
+          }
+      );
+    } else {
+      // This is intentionally a debug-level fallback: a surface can render before its
+      // output backdrop has received its first frame, and the Box fallback remains visible.
+      kLog.debug("glass background unavailable for output {}", glass->outputName());
+    }
+    break;
+  }
   case NodeType::Rect: {
     const auto* rect = static_cast<const RectNode*>(node);
     auto style = rect->style();

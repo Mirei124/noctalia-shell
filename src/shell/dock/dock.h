@@ -65,6 +65,8 @@ private:
   bool syncInstanceModel(shell::dock::DockInstance& instance);
   void rebuildItems(shell::dock::DockInstance& instance);
   void updateVisuals(shell::dock::DockInstance& instance);
+  // Update the shared wallpaper material in place while its slider moves.
+  void updateGlassMaterials();
   void updateHoverZoomPointer(shell::dock::DockInstance& instance, float sceneX, float sceneY);
   void clearHoverZoomPointer(shell::dock::DockInstance& instance);
   void activateOrLaunchItem(shell::dock::DockInstance& instance, const shell::dock::DockItemAction& action);
@@ -81,6 +83,11 @@ private:
   RenderContext* m_renderContext = nullptr;
   DockConfig m_lastDockConfig{};
   ShellConfig::ShadowConfig m_lastShadow;
+  bool m_lastGlassEnabled = false;
+  float m_lastGlassOpacity = 0.62F;
+  std::string m_lastGlassPreset = "subtle";
+  float m_lastGlassRefractionStrength = 1.0F;
+  float m_lastGlassBlurIntensity = 0.15F;
   std::vector<std::string> m_lastPinnedConfig;
   std::vector<std::string> m_lastBarLayerStack;
   std::vector<DesktopEntry> m_pinnedEntries;

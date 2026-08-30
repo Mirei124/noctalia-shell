@@ -10,6 +10,7 @@
 #include "ipc/ipc_arg_parse.h"
 #include "ipc/ipc_service.h"
 #include "render/render_context.h"
+#include "render/scene/glass_node.h"
 #include "render/scene/input_area.h"
 #include "scripting/plugin_id.h"
 #include "shell/bar/bar_corner_shape.h"
@@ -17,6 +18,7 @@
 #include "shell/panel/panel.h"
 #include "shell/panel/panel_surface_style.h"
 #include "shell/screen_position.h"
+#include "shell/surface/output_local_rect.h"
 #include "shell/surface/shadow.h"
 #include "shell/tooltip/tooltip_manager.h"
 #include "ui/builders.h"
@@ -113,35 +115,33 @@ namespace {
     };
   }
 
-  std::int32_t anchoredSurfaceOrigin(
-      std::uint32_t anchor, std::uint32_t startAnchor, std::uint32_t endAnchor, std::int32_t startMargin,
-      std::int32_t endMargin, std::int32_t outputExtent, std::int32_t surfaceExtent
-  ) {
-    const bool anchoredStart = (anchor & startAnchor) != 0;
-    const bool anchoredEnd = (anchor & endAnchor) != 0;
-    if (anchoredStart != anchoredEnd) {
-      return anchoredStart ? startMargin : outputExtent - surfaceExtent - endMargin;
-    }
-    return (outputExtent - surfaceExtent) / 2;
-  }
-
   InputRect panelInputRectForSurface(
       std::uint32_t anchor, std::int32_t marginTop, std::int32_t marginRight, std::int32_t marginBottom,
       std::int32_t marginLeft, std::int32_t outputWidth, std::int32_t outputHeight, std::uint32_t surfaceWidth,
       std::uint32_t surfaceHeight, std::int32_t insetX, std::int32_t insetY, std::uint32_t panelWidth,
       std::uint32_t panelHeight
   ) {
-    const auto resolvedSurfaceWidth = static_cast<std::int32_t>(surfaceWidth);
-    const auto resolvedSurfaceHeight = static_cast<std::int32_t>(surfaceHeight);
-    const auto surfaceX = anchoredSurfaceOrigin(
-        anchor, LayerShellAnchor::Left, LayerShellAnchor::Right, marginLeft, marginRight, outputWidth,
-        resolvedSurfaceWidth
+    const auto surfaceRect = shell::surface::resolveOutputLocalRect(
+        shell::surface::LayerSurfacePlacement{
+            .anchor = anchor,
+            .marginTop = marginTop,
+            .marginRight = marginRight,
+            .marginBottom = marginBottom,
+            .marginLeft = marginLeft,
+            .width = surfaceWidth,
+            .height = surfaceHeight,
+        },
+        static_cast<float>(outputWidth), static_cast<float>(outputHeight)
     );
-    const auto surfaceY = anchoredSurfaceOrigin(
-        anchor, LayerShellAnchor::Top, LayerShellAnchor::Bottom, marginTop, marginBottom, outputHeight,
-        resolvedSurfaceHeight
+    const auto bodyRect = shell::surface::insetOutputLocalRect(
+        surfaceRect, static_cast<float>(insetX), static_cast<float>(insetY),
+        std::max(0.0F, surfaceRect.width - static_cast<float>(insetX) - static_cast<float>(panelWidth)),
+        std::max(0.0F, surfaceRect.height - static_cast<float>(insetY) - static_cast<float>(panelHeight))
     );
-    return InputRect{surfaceX + insetX, surfaceY + insetY, static_cast<int>(panelWidth), static_cast<int>(panelHeight)};
+    return InputRect{
+        static_cast<int>(std::lround(bodyRect.x)), static_cast<int>(std::lround(bodyRect.y)),
+        static_cast<int>(std::lround(bodyRect.width)), static_cast<int>(std::lround(bodyRect.height))
+    };
   }
 
   InputRect boundsForPanelTrace(const std::vector<InputRect>& rects) {
@@ -926,6 +926,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     m_panelInsetY = 0;
     m_panelVisualWidth = 0;
     m_panelVisualHeight = 0;
+    m_panelOutputVisualRect.reset();
     m_panelOutputInputRect.reset();
     m_panelFillWidth = false;
     m_panelFillHeight = false;
@@ -1140,8 +1141,9 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     m_layerSurface = layerSurfaceUnique.get();
     m_surface = std::move(layerSurfaceUnique);
     configureSurfaceCallbacks(*m_surface);
+    m_panelOutputVisualRect = InputRect{visualX, visualY, static_cast<int>(panelWidth), static_cast<int>(panelHeight)};
     if (wantsOutsideDismiss) {
-      m_panelOutputInputRect = InputRect{visualX, visualY, static_cast<int>(panelWidth), static_cast<int>(panelHeight)};
+      m_panelOutputInputRect = m_panelOutputVisualRect;
       m_clickShield.setPanelInputRect(request.output, *m_panelOutputInputRect);
     }
 
@@ -1225,8 +1227,9 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
   m_attachedPanelGeometry.reset();
   m_attachedToBar = false;
   configureSurfaceCallbacks(*m_surface);
+  m_panelOutputVisualRect = detachedPanelInputRect;
   if (wantsOutsideDismiss) {
-    m_panelOutputInputRect = detachedPanelInputRect;
+    m_panelOutputInputRect = m_panelOutputVisualRect;
     m_clickShield.setPanelInputRect(request.output, *m_panelOutputInputRect);
   }
 
@@ -1404,6 +1407,7 @@ void PanelManager::destroyPanel() {
     m_activePanel->onClose();
   }
   m_bgNode = nullptr;
+  m_glassNode = nullptr;
   m_contentNode = nullptr;
   m_detachedRevealClipNode = nullptr;
   m_detachedRevealContentNode = nullptr;
@@ -1424,6 +1428,7 @@ void PanelManager::destroyPanel() {
   m_panelInsetY = 0;
   m_panelVisualWidth = 0;
   m_panelVisualHeight = 0;
+  m_panelOutputVisualRect.reset();
   m_panelOutputInputRect.reset();
   m_panelFillWidth = false;
   m_panelFillHeight = false;
@@ -1694,8 +1699,7 @@ void PanelManager::relayoutActivePanelPreferredSize() {
   const std::string panelPosition = resolvePanelPosition(m_config, m_activePanelId);
   const bool useCenterScreenLayout =
       m_activePanel->panelPlacement() == PanelPlacement::Floating && panelPosition == "center";
-  if (m_panelOutputInputRect.has_value()) {
-    InputRect rect = *m_panelOutputInputRect;
+  const auto resizeOutputRect = [&](InputRect rect) {
     const std::uint32_t anchor = m_layerSurface->anchor();
     if (!m_panelFillWidth) {
       const auto widthDelta = static_cast<std::int32_t>(panelWidth) - static_cast<std::int32_t>(m_panelVisualWidth);
@@ -1723,6 +1727,13 @@ void PanelManager::relayoutActivePanelPreferredSize() {
       }
       rect.height = static_cast<int>(panelHeight);
     }
+    return rect;
+  };
+  if (m_panelOutputVisualRect.has_value()) {
+    m_panelOutputVisualRect = resizeOutputRect(*m_panelOutputVisualRect);
+  }
+  if (m_panelOutputInputRect.has_value()) {
+    const InputRect rect = resizeOutputRect(*m_panelOutputInputRect);
     m_panelOutputInputRect = rect;
     m_clickShield.setPanelInputRect(m_output, rect);
   }
@@ -2291,7 +2302,9 @@ void PanelManager::applyAttachedDecorationStyle() {
 
   if (m_bgNode != nullptr) {
     auto* bg = static_cast<Box*>(m_bgNode);
-    bg->setFill(colorSpecFromRole(ColorRole::Surface, m_attachedBackgroundOpacity));
+    const bool glass =
+        m_config != nullptr && m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass;
+    bg->setFill(colorSpecFromRole(ColorRole::Surface, glass ? 0.0F : m_attachedBackgroundOpacity));
   }
 
   if (m_panelShadowNode != nullptr && m_config != nullptr) {
@@ -2356,6 +2369,43 @@ void PanelManager::onConfigReloaded() {
     }
   }
 
+  const bool glassEnabled = m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass;
+  if (glassEnabled && m_glassNode == nullptr && m_bgNode != nullptr && m_output != nullptr) {
+    auto glass = std::make_unique<GlassNode>();
+    auto material = GlassMaterial::fromPreset(
+        m_config->config().shell.panel.glassPreset, m_config->config().shell.panel.glassRefractionStrength
+    );
+    material.opacity = m_config->config().shell.panel.glassOpacity;
+    material.blurMix = m_config->config().shell.panel.glassBlurIntensity;
+    glass->setMaterial(material);
+    if (const auto* output = m_platform->findOutputByWl(m_output); output != nullptr) {
+      glass->setOutput(output->name, 0.0F, 0.0F);
+    }
+    glass->setZIndex(m_bgNode->zIndex() - 1);
+    m_glassNode = m_bgNode->parent()->addChild(std::move(glass));
+  }
+  if (m_glassNode != nullptr) {
+    auto material = GlassMaterial::fromPreset(
+        m_config->config().shell.panel.glassPreset, m_config->config().shell.panel.glassRefractionStrength
+    );
+    material.opacity = m_config->config().shell.panel.glassOpacity;
+    material.blurMix = m_config->config().shell.panel.glassBlurIntensity;
+    static_cast<GlassNode*>(m_glassNode)->setMaterial(material);
+    m_glassNode->setVisible(glassEnabled);
+    m_glassNode->setPosition(m_bgNode->x(), m_bgNode->y());
+    m_glassNode->setSize(m_bgNode->width(), m_bgNode->height());
+    if (m_panelOutputVisualRect.has_value()) {
+      const auto& rect = *m_panelOutputVisualRect;
+      auto* glass = static_cast<GlassNode*>(m_glassNode);
+      glass->setOutput(
+          glass->outputName(), static_cast<float>(rect.x) + m_bgNode->x() - static_cast<float>(m_panelInsetX),
+          static_cast<float>(rect.y) + m_bgNode->y() - static_cast<float>(m_panelInsetY)
+      );
+      const auto& style = static_cast<Box*>(m_bgNode)->style();
+      glass->setShape(style.corners, style.logicalInset, style.radius);
+    }
+  }
+
   if (m_attachedToBar) {
     applyAttachedReveal(m_attachedRevealProgress);
   } else {
@@ -2367,7 +2417,10 @@ void PanelManager::onConfigReloaded() {
   if (!m_attachedToBar && m_bgNode != nullptr) {
     auto* bg = static_cast<Box*>(m_bgNode);
     bg->setPanelStyle(m_config->config().shell.panel.borders);
-    bg->setFill(colorSpecFromRole(ColorRole::Surface, panelBackgroundOpacity));
+    bg->setFill(colorSpecFromRole(
+        ColorRole::Surface,
+        m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass ? 0.0F : panelBackgroundOpacity
+    ));
     if (m_config->config().shell.panel.borders) {
       bg->setBorder(colorSpecFromRole(ColorRole::Outline, panelBackgroundOpacity), Style::borderWidth);
     }
@@ -2471,6 +2524,19 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
     }
 
     if (hasDecoration) {
+      if (m_config != nullptr && m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass) {
+        auto glass = std::make_unique<GlassNode>();
+        auto material = GlassMaterial::fromPreset(
+            m_config->config().shell.panel.glassPreset, m_config->config().shell.panel.glassRefractionStrength
+        );
+        material.opacity = m_config->config().shell.panel.glassOpacity;
+        material.blurMix = m_config->config().shell.panel.glassBlurIntensity;
+        glass->setMaterial(material);
+        if (const auto* output = m_platform->findOutputByWl(m_output); output != nullptr) {
+          glass->setOutput(output->name, 0.0F, 0.0F);
+        }
+        m_glassNode = sceneParent->addChild(std::move(glass));
+      }
       auto bg = ui::box({});
       const bool panelBorders = m_config != nullptr && m_config->config().shell.panel.borders;
       bg->setPanelStyle(panelBorders);
@@ -2483,7 +2549,10 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
         // Fill (opacity-dependent) is applied via applyAttachedDecorationStyle() below.
       } else {
         const float backgroundOpacity = shell::panel_surface::backgroundOpacity(m_config);
-        bg->setFill(colorSpecFromRole(ColorRole::Surface, backgroundOpacity));
+        bg->setFill(colorSpecFromRole(
+            ColorRole::Surface,
+            m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass ? 0.0F : backgroundOpacity
+        ));
         if (panelBorders) {
           bg->setBorder(colorSpecFromRole(ColorRole::Outline, backgroundOpacity), Style::borderWidth);
         }
@@ -2595,6 +2664,22 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
   const float bgW = barIsVertical ? panelW : panelW + attachedRadius * 2.0F;
   const float bgH = barIsVertical ? panelH + attachedRadius * 2.0F : panelH;
 
+  // Detached surfaces can be configured to a different size than requested,
+  // so derive their visual origin again after every configure. Attached
+  // surfaces deliberately use their opening-time rect: layer-shell places
+  // them after the bar's exclusive zone, a compositor offset which is not
+  // represented in the configured margins.
+  if (!m_attachedToBar && m_layerSurface != nullptr && m_output != nullptr && m_platform != nullptr) {
+    if (const auto* output = m_platform->findOutputByWl(m_output); output != nullptr) {
+      m_panelOutputVisualRect = panelInputRectForSurface(
+          m_layerSurface->anchor(), m_layerSurface->marginTop(), m_layerSurface->marginRight(),
+          m_layerSurface->marginBottom(), m_layerSurface->marginLeft(), output->effectiveLogicalWidth(),
+          output->effectiveLogicalHeight(), width, height, m_panelInsetX, m_panelInsetY,
+          static_cast<std::uint32_t>(std::lround(panelW)), static_cast<std::uint32_t>(std::lround(panelH))
+      );
+    }
+  }
+
   if (m_panelShadowNode != nullptr && m_config != nullptr) {
     const auto& shadowConfig = m_config->config().shell.shadow;
     const bool panelShadow =
@@ -2620,6 +2705,19 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
   if (m_bgNode != nullptr) {
     m_bgNode->setPosition(bgX, bgY);
     m_bgNode->setSize(bgW, bgH);
+  }
+  if (m_glassNode != nullptr) {
+    m_glassNode->setPosition(bgX, bgY);
+    m_glassNode->setSize(bgW, bgH);
+    if (auto* glass = static_cast<GlassNode*>(m_glassNode); glass != nullptr && m_panelOutputVisualRect.has_value()) {
+      const auto& rect = *m_panelOutputVisualRect;
+      glass->setOutput(
+          glass->outputName(), static_cast<float>(rect.x) + bgX - static_cast<float>(m_panelInsetX),
+          static_cast<float>(rect.y) + bgY - static_cast<float>(m_panelInsetY)
+      );
+      const auto& style = static_cast<Box*>(m_bgNode)->style();
+      glass->setShape(style.corners, style.logicalInset, style.radius);
+    }
   }
 
   if (m_panelContactShadowNode != nullptr) {

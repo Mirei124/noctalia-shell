@@ -152,7 +152,7 @@ void WallpaperRenderer::renderToFramebuffer(const RenderFramebuffer& target) {
   makeCurrent();
   const auto drawStart = std::chrono::steady_clock::now();
   m_backend->bindFramebuffer(target);
-  m_backend->setViewport(m_bufferWidth, m_bufferHeight);
+  m_backend->setViewport(target.width(), target.height());
   m_backend->clear(rgba(0.0F, 0.0F, 0.0F, 1.0F));
   m_backend->setBlendMode(RenderBlendMode::StraightAlpha);
 

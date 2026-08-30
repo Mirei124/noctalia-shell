@@ -51,5 +51,6 @@ private:
   bool m_lastShouldHaveInstances = false;
   bool m_lastWallpaperEnabled = true;
   WallpaperFillMode m_lastWallpaperFillMode = WallpaperFillMode::Crop;
+  bool m_lastGlassEnabled = false;
   std::vector<std::unique_ptr<BackdropInstance>> m_instances;
 };

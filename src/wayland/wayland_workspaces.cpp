@@ -166,6 +166,7 @@ void WaylandWorkspaces::initialize() {
     setActiveBackend(nullptr);
     return;
   case compositors::CompositorKind::Dwl:
+  case compositors::CompositorKind::Wayfire:
     if (availableOrConnected(m_dwlIpcBackend)) {
       setActiveBackend(m_dwlIpcBackend);
       return;

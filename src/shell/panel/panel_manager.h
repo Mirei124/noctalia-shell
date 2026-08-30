@@ -229,6 +229,7 @@ private:
   AnimationManager m_animations;
   std::unique_ptr<Node> m_sceneRoot;
   Node* m_bgNode = nullptr;
+  Node* m_glassNode = nullptr;
   Node* m_contentNode = nullptr;
   Node* m_detachedRevealClipNode = nullptr;
   Node* m_detachedRevealContentNode = nullptr;
@@ -251,6 +252,9 @@ private:
   std::int32_t m_panelInsetY = 0;
   std::uint32_t m_panelVisualWidth = 0;
   std::uint32_t m_panelVisualHeight = 0;
+  // Output-local visual body rect for wallpaper sampling. Unlike the input
+  // rect, this exists even when the panel does not dismiss on outside clicks.
+  std::optional<InputRect> m_panelOutputVisualRect;
   std::optional<InputRect> m_panelOutputInputRect;
   // Fill axes derive their visual size from the compositor-configured surface
   // size in buildScene; that math also needs the trailing shadow bleed.

@@ -1141,6 +1141,39 @@ namespace settings {
         "glass opacity alpha translucent cards blur"
     ));
     entries.push_back(makeEntry(
+        SettingsSection::Panels, "effects", tr("settings.schema.panels.glass-preset.label"),
+        tr("settings.schema.panels.glass-preset.description"), {"shell", "panel", "glass_preset"},
+        asSegmented(plainSelect(
+            {{"subtle", "settings.options.glass-preset.subtle"},
+             {"clear", "settings.options.glass-preset.clear"},
+             {"frosted", "settings.options.glass-preset.frosted"},
+             {"bold", "settings.options.glass-preset.bold"}},
+            cfg.shell.panel.glassPreset
+        )),
+        "glass material preset subtle clear frosted bold"
+    ));
+    entries.push_back(makeEntry(
+        SettingsSection::Panels, "effects", tr("settings.schema.panels.glass-opacity.label"),
+        tr("settings.schema.panels.glass-opacity.description"), {"shell", "panel", "glass_opacity"},
+        sliderFor(cfg.shell.panel.glassOpacity, noctalia::config::schema::kUnitRange, false),
+        "glass opacity transparent translucent wallpaper"
+    ));
+    entries.push_back(makeEntry(
+        SettingsSection::Panels, "effects", tr("settings.schema.panels.glass-blur-intensity.label"),
+        tr("settings.schema.panels.glass-blur-intensity.description"), {"shell", "panel", "glass_blur_intensity"},
+        sliderFor(cfg.shell.panel.glassBlurIntensity, noctalia::config::schema::kUnitRange, false),
+        "glass blur frosted wallpaper strength"
+    ));
+    entries.push_back(makeEntry(
+        SettingsSection::Panels, "effects", tr("settings.schema.panels.glass-refraction-strength.label"),
+        tr("settings.schema.panels.glass-refraction-strength.description"),
+        {"shell", "panel", "glass_refraction_strength"},
+        sliderFor(
+            cfg.shell.panel.glassRefractionStrength, noctalia::config::schema::kGlassMaterialStrengthRange, false
+        ),
+        "glass refraction distortion chromatic edge strength"
+    ));
+    entries.push_back(makeEntry(
         SettingsSection::Panels, "effects", tr("settings.schema.panels.borders.label"),
         tr("settings.schema.panels.borders.description"), {"shell", "panel", "borders"},
         ToggleSetting{cfg.shell.panel.borders}, "outline border shell edge"

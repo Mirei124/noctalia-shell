@@ -5,9 +5,11 @@
 #include "core/ui_phase.h"
 #include "render/core/render_styles.h"
 #include "render/render_context.h"
+#include "render/scene/glass_node.h"
 #include "render/scene/node.h"
 #include "shell/dock/dock_geometry.h"
 #include "shell/dock/dock_items.h"
+#include "shell/surface/output_local_rect.h"
 #include "shell/surface/shadow.h"
 #include "shell/tooltip/tooltip_manager.h"
 #include "ui/builders.h"
@@ -21,6 +23,17 @@
 namespace shell::dock {
 
   namespace {
+
+    [[nodiscard]] std::pair<float, float> surfaceOriginForOutputLocal(const DockInstance& instance) {
+      if (instance.surface == nullptr) {
+        return {0.0F, 0.0F};
+      }
+      const auto rect = shell::surface::resolveOutputLocalRect(
+          *instance.surface, static_cast<float>(instance.outputLogicalWidth),
+          static_cast<float>(instance.outputLogicalHeight)
+      );
+      return {rect.x, rect.y};
+    }
 
     [[nodiscard]] bool dockUsesSlideAutoHide(const DockConfig& cfg, const DockInstance& instance) noexcept {
       if (cfg.smartAutoHide) {
@@ -228,6 +241,18 @@ namespace shell::dock {
         instance.shadow = static_cast<Box*>(instance.slideRoot->addChild(ui::box()));
       }
 
+      if (deps.config.config().shell.panel.transparencyMode == PanelTransparencyMode::Glass) {
+        auto glass = std::make_unique<GlassNode>();
+        glass->setOutput(instance.outputName, 0.0F, 0.0F);
+        auto material = GlassMaterial::fromPreset(
+            deps.config.config().shell.panel.glassPreset, deps.config.config().shell.panel.glassRefractionStrength
+        );
+        material.opacity = deps.config.config().shell.panel.glassOpacity;
+        material.blurMix = deps.config.config().shell.panel.glassBlurIntensity;
+        glass->setMaterial(material);
+        instance.glass = instance.slideRoot->addChild(std::move(glass));
+      }
+
       // Panel background (icons render as a sibling so magnification can extend past the capsule).
       instance.panel = static_cast<Box*>(instance.slideRoot->addChild(
           ui::box({
@@ -321,6 +346,19 @@ namespace shell::dock {
         panelGeometry.panelW + concave.logicalInset.left + concave.logicalInset.right,
         panelGeometry.panelH + concave.logicalInset.top + concave.logicalInset.bottom
     );
+    if (instance.glass != nullptr) {
+      const float glassX = panelGeometry.panelX - concave.logicalInset.left;
+      const float glassY = panelGeometry.panelY - concave.logicalInset.top;
+      instance.glass->setPosition(glassX, glassY);
+      instance.glass->setSize(
+          panelGeometry.panelW + concave.logicalInset.left + concave.logicalInset.right,
+          panelGeometry.panelH + concave.logicalInset.top + concave.logicalInset.bottom
+      );
+      auto* glass = static_cast<GlassNode*>(instance.glass);
+      const auto [surfaceX, surfaceY] = surfaceOriginForOutputLocal(instance);
+      glass->setOutput(instance.outputName, surfaceX + glassX, surfaceY + glassY);
+      glass->setShape(concave.corners, concave.logicalInset, concave.radii);
+    }
 
     // Row matches the pill; hover spread is clamped to stay inside the background.
     instance.row->setPosition(panelGeometry.panelX, panelGeometry.panelY);
@@ -356,7 +394,9 @@ namespace shell::dock {
   void applyPanelPalette(DockInstance& instance, const DockConfig& cfg) {
     if (instance.panel == nullptr)
       return;
-    const float opacity = cfg.backgroundOpacity;
+    // When a GlassNode exists it supplies the dock's entire background. The
+    // regular panel Box remains only for its configured border and geometry.
+    const float opacity = instance.glass != nullptr ? 0.0F : cfg.backgroundOpacity;
     instance.panel->setFill(colorSpecFromRole(ColorRole::Surface, opacity));
     instance.panel->setBorder(cfg.border, cfg.borderWidth);
   }

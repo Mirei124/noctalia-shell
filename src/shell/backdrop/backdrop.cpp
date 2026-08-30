@@ -21,7 +21,9 @@ namespace {
 Backdrop::Backdrop() = default;
 Backdrop::~Backdrop() = default;
 
-bool Backdrop::isSupportedForCurrentCompositor() const { return m_wayland != nullptr && compositors::isNiri(); }
+bool Backdrop::isSupportedForCurrentCompositor() const {
+  return m_wayland != nullptr && (compositors::isNiri() || compositors::isWayfire());
+}
 
 bool Backdrop::shouldHaveInstances() const {
   if (m_config == nullptr || !m_config->config().backdrop.enabled) {
@@ -53,6 +55,11 @@ bool Backdrop::initialize(
     return true;
   }
 
+  kLog.info(
+      "wallpaper backdrop support: compositor={} supported={}", compositors::name(compositors::detect()),
+      shouldHaveInstances()
+  );
+
   cacheReloadBaseline();
   return true;
 }
@@ -66,6 +73,7 @@ void Backdrop::cacheReloadBaseline() {
   m_lastShouldHaveInstances = shouldHaveInstances();
   m_lastWallpaperEnabled = cfg.wallpaper.enabled;
   m_lastWallpaperFillMode = cfg.wallpaper.fillMode;
+  m_lastGlassEnabled = cfg.shell.panel.transparencyMode == PanelTransparencyMode::Glass;
 }
 
 void Backdrop::reload() {
@@ -74,6 +82,7 @@ void Backdrop::reload() {
   }
 
   const auto& cfg = m_config->config();
+  const bool glassChanged = (cfg.shell.panel.transparencyMode == PanelTransparencyMode::Glass) != m_lastGlassEnabled;
   const bool shouldInstances = shouldHaveInstances();
   const bool recreateNeeded = cfg.backdrop != m_lastBackdropConfig
       || shouldInstances != m_lastShouldHaveInstances
@@ -83,7 +92,8 @@ void Backdrop::reload() {
       && cfg.backdrop.enabled
       && shouldInstances
       && !m_instances.empty()
-      && cfg.wallpaper.fillMode == m_lastWallpaperFillMode) {
+      && cfg.wallpaper.fillMode == m_lastWallpaperFillMode
+      && !glassChanged) {
     return;
   }
 
@@ -259,6 +269,7 @@ void Backdrop::createInstance(const WaylandOutput& output) {
 
   inst->surface = std::make_unique<BackdropSurface>(*m_wayland, std::move(surfaceConfig));
   inst->surface->setSharedGl(m_sharedGl);
+  inst->surface->setOutputName(output.name);
   inst->surface->setClickThrough(true);
 
   updateRendererState(*inst);
@@ -319,6 +330,7 @@ void Backdrop::updateRendererState(BackdropInstance& inst) {
   const auto& ov = m_config->config().backdrop;
   inst.surface->setBlurIntensity(ov.blurIntensity);
   inst.surface->setTintIntensity(ov.tintIntensity);
+  inst.surface->setGlassEnabled(m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass);
 
   // Tint color from the current surface role.
   const Color surface = colorForRole(ColorRole::Surface);

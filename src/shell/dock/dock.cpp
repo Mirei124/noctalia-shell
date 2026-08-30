@@ -6,6 +6,7 @@
 #include "core/deferred_call.h"
 #include "core/log.h"
 #include "ipc/ipc_service.h"
+#include "render/scene/glass_node.h"
 #include "render/scene/node.h"
 #include "shell/dock/dock_context_menu.h"
 #include "shell/dock/dock_geometry.h"
@@ -291,7 +292,26 @@ bool Dock::initialize(CompositorPlatform& platform, ConfigService* config, Rende
         const auto& newCfg = m_config->config().dock;
         const auto& newShadow = m_config->config().shell.shadow;
         const auto newBarLayerStack = barLayerStackSignature(m_config->config());
-        if (newCfg == m_lastDockConfig && newShadow == m_lastShadow && newBarLayerStack == m_lastBarLayerStack) {
+        const bool glassEnabled = m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass;
+        const float glassOpacity = m_config->config().shell.panel.glassOpacity;
+        const auto& panel = m_config->config().shell.panel;
+        const bool sameExceptGlassMaterial = newCfg == m_lastDockConfig
+            && newShadow == m_lastShadow
+            && newBarLayerStack == m_lastBarLayerStack
+            && glassEnabled == m_lastGlassEnabled;
+        if (sameExceptGlassMaterial
+            && glassOpacity == m_lastGlassOpacity
+            && panel.glassPreset == m_lastGlassPreset
+            && panel.glassRefractionStrength == m_lastGlassRefractionStrength
+            && panel.glassBlurIntensity == m_lastGlassBlurIntensity) {
+          return;
+        }
+        if (sameExceptGlassMaterial) {
+          m_lastGlassOpacity = glassOpacity;
+          m_lastGlassPreset = panel.glassPreset;
+          m_lastGlassRefractionStrength = panel.glassRefractionStrength;
+          m_lastGlassBlurIntensity = panel.glassBlurIntensity;
+          updateGlassMaterials();
           return;
         }
         if (newBarLayerStack != m_lastBarLayerStack && newCfg == m_lastDockConfig && newShadow == m_lastShadow) {
@@ -316,6 +336,11 @@ bool Dock::initialize(CompositorPlatform& platform, ConfigService* config, Rende
 
   m_lastDockConfig = cfg;
   m_lastShadow = m_config->config().shell.shadow;
+  m_lastGlassEnabled = m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass;
+  m_lastGlassOpacity = m_config->config().shell.panel.glassOpacity;
+  m_lastGlassPreset = m_config->config().shell.panel.glassPreset;
+  m_lastGlassRefractionStrength = m_config->config().shell.panel.glassRefractionStrength;
+  m_lastGlassBlurIntensity = m_config->config().shell.panel.glassBlurIntensity;
   m_lastPinnedConfig = cfg.pinned;
   m_lastBarLayerStack = barLayerStackSignature(m_config->config());
 
@@ -333,6 +358,11 @@ void Dock::reload() {
   const auto& cfg = m_config->config().dock;
   m_lastDockConfig = cfg;
   m_lastShadow = m_config->config().shell.shadow;
+  m_lastGlassEnabled = m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass;
+  m_lastGlassOpacity = m_config->config().shell.panel.glassOpacity;
+  m_lastGlassPreset = m_config->config().shell.panel.glassPreset;
+  m_lastGlassRefractionStrength = m_config->config().shell.panel.glassRefractionStrength;
+  m_lastGlassBlurIntensity = m_config->config().shell.panel.glassBlurIntensity;
   m_lastBarLayerStack = barLayerStackSignature(m_config->config());
 
   if (!cfg.enabled) {
@@ -352,6 +382,27 @@ void Dock::reload() {
     );
   }
   syncInstances();
+}
+
+void Dock::updateGlassMaterials() {
+  if (m_config == nullptr) {
+    return;
+  }
+  const auto& panel = m_config->config().shell.panel;
+  kLog.info(
+      "updating glass material: preset={}, opacity={:.2f}, refraction_strength={:.2f}", panel.glassPreset,
+      panel.glassOpacity, panel.glassRefractionStrength
+  );
+  for (const auto& instance : m_instances) {
+    if (instance == nullptr || instance->glass == nullptr) {
+      continue;
+    }
+    auto material = GlassMaterial::fromPreset(panel.glassPreset, panel.glassRefractionStrength);
+    material.opacity = panel.glassOpacity;
+    material.blurMix = panel.glassBlurIntensity;
+    static_cast<GlassNode*>(instance->glass)->setMaterial(material);
+  }
+  requestRedraw();
 }
 
 void Dock::show() {

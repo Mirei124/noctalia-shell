@@ -78,6 +78,7 @@ struct BarInstance {
 
   // Bar background, shadow, and layout sections (start/center/end along main axis)
   Box* bg = nullptr;
+  Node* glass = nullptr;
   Box* shadow = nullptr;
   Node* shadowLeftClip = nullptr;
   Node* shadowRightClip = nullptr;

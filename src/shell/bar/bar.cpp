@@ -12,6 +12,7 @@
 #include "ipc/ipc_arg_parse.h"
 #include "ipc/ipc_service.h"
 #include "render/render_context.h"
+#include "render/scene/glass_node.h"
 #include "render/scene/input_area.h"
 #include "shell/bar/bar_corner_shape.h"
 #include "shell/bar/bar_reserved_zone.h"
@@ -21,6 +22,7 @@
 #include "shell/bar/widgets/taskbar_widget.h"
 #include "shell/bar/widgets/tray_widget.h"
 #include "shell/panel/panel_manager.h"
+#include "shell/surface/output_local_rect.h"
 #include "shell/surface/shadow.h"
 #include "shell/tooltip/tooltip_manager.h"
 #include "ui/builders.h"
@@ -252,39 +254,11 @@ namespace {
     if (instance.surface == nullptr) {
       return {0.0F, 0.0F};
     }
-    const auto* surface = instance.surface.get();
-    const std::uint32_t anchor = surface->anchor();
-    const bool aTop = (anchor & LayerShellAnchor::Top) != 0;
-    const bool aBottom = (anchor & LayerShellAnchor::Bottom) != 0;
-    const bool aLeft = (anchor & LayerShellAnchor::Left) != 0;
-    const bool aRight = (anchor & LayerShellAnchor::Right) != 0;
-    const auto mTop = static_cast<float>(surface->marginTop());
-    const auto mRight = static_cast<float>(surface->marginRight());
-    const auto mBottom = static_cast<float>(surface->marginBottom());
-    const auto mLeft = static_cast<float>(surface->marginLeft());
-    const auto surfW = static_cast<float>(surface->width());
-    const auto surfH = static_cast<float>(surface->height());
-    const auto outputW = static_cast<float>(outputInfo.effectiveLogicalWidth());
-    const auto outputH = static_cast<float>(outputInfo.effectiveLogicalHeight());
-
-    float x = 0.0F;
-    float y = 0.0F;
-    if (aLeft && aRight) {
-      x = mLeft;
-    } else if (aRight) {
-      x = std::max(0.0F, outputW - mRight - surfW);
-    } else {
-      x = mLeft;
-    }
-
-    if (aTop && aBottom) {
-      y = mTop;
-    } else if (aBottom) {
-      y = std::max(0.0F, outputH - mBottom - surfH);
-    } else {
-      y = mTop;
-    }
-    return {x, y};
+    const auto rect = shell::surface::resolveOutputLocalRect(
+        *instance.surface, static_cast<float>(outputInfo.effectiveLogicalWidth()),
+        static_cast<float>(outputInfo.effectiveLogicalHeight())
+    );
+    return {rect.x, rect.y};
   }
 
   bool isBarDeadZone(const BarInstance& instance, float sceneX, float sceneY) {
@@ -1452,14 +1426,33 @@ bool Bar::initialize(const BarServices& services) {
   m_lastBars = m_config->config().bars;
   m_lastWidgets = m_config->config().widgets;
   m_lastShadow = m_config->config().shell.shadow;
+  m_lastGlassEnabled = m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass;
+  m_lastGlassOpacity = m_config->config().shell.panel.glassOpacity;
+  m_lastGlassPreset = m_config->config().shell.panel.glassPreset;
+  m_lastGlassRefractionStrength = m_config->config().shell.panel.glassRefractionStrength;
+  m_lastGlassBlurIntensity = m_config->config().shell.panel.glassBlurIntensity;
   m_lastPlugins = m_config->config().plugins;
   m_config->addReloadCallback(
       [this]() {
         const auto& cfg = m_config->config();
-        if (cfg.bars == m_lastBars
+        const bool sameExceptGlassMaterial = cfg.bars == m_lastBars
             && cfg.widgets == m_lastWidgets
             && cfg.shell.shadow == m_lastShadow
-            && cfg.plugins == m_lastPlugins) {
+            && (cfg.shell.panel.transparencyMode == PanelTransparencyMode::Glass) == m_lastGlassEnabled
+            && cfg.plugins == m_lastPlugins;
+        if (sameExceptGlassMaterial
+            && cfg.shell.panel.glassOpacity == m_lastGlassOpacity
+            && cfg.shell.panel.glassPreset == m_lastGlassPreset
+            && cfg.shell.panel.glassRefractionStrength == m_lastGlassRefractionStrength
+            && cfg.shell.panel.glassBlurIntensity == m_lastGlassBlurIntensity) {
+          return;
+        }
+        if (sameExceptGlassMaterial) {
+          m_lastGlassOpacity = cfg.shell.panel.glassOpacity;
+          m_lastGlassPreset = cfg.shell.panel.glassPreset;
+          m_lastGlassRefractionStrength = cfg.shell.panel.glassRefractionStrength;
+          m_lastGlassBlurIntensity = cfg.shell.panel.glassBlurIntensity;
+          updateGlassMaterials();
           return;
         }
         reload();
@@ -1513,14 +1506,21 @@ void Bar::reload() {
   kLog.info("reloading config");
   const auto previousBars = m_lastBars;
   const auto previousShadow = m_lastShadow;
+  const bool glassChanged =
+      (m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass) != m_lastGlassEnabled;
   const bool recreateForOrder = barSurfaceOrderRequiresRecreate(previousBars, m_config->config().bars);
   m_lastBars = m_config->config().bars;
   m_lastWidgets = m_config->config().widgets;
   m_lastShadow = m_config->config().shell.shadow;
+  m_lastGlassEnabled = m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass;
+  m_lastGlassOpacity = m_config->config().shell.panel.glassOpacity;
+  m_lastGlassPreset = m_config->config().shell.panel.glassPreset;
+  m_lastGlassRefractionStrength = m_config->config().shell.panel.glassRefractionStrength;
+  m_lastGlassBlurIntensity = m_config->config().shell.panel.glassBlurIntensity;
   m_lastPlugins = m_config->config().plugins;
   m_widgetFactory = std::make_unique<WidgetFactory>(services());
 
-  if (recreateForOrder) {
+  if (recreateForOrder || glassChanged) {
     kLog.info("bar order changed; recreating layer-shell surfaces");
     closeAllInstances();
     if (wl_display_roundtrip(m_platform->display()) < 0) {
@@ -1626,6 +1626,27 @@ void Bar::reload() {
   }
 
   syncInstances();
+}
+
+void Bar::updateGlassMaterials() {
+  if (m_config == nullptr) {
+    return;
+  }
+  const auto& panel = m_config->config().shell.panel;
+  kLog.info(
+      "updating glass material: preset={}, opacity={:.2f}, refraction_strength={:.2f}", panel.glassPreset,
+      panel.glassOpacity, panel.glassRefractionStrength
+  );
+  for (auto& instance : m_instances) {
+    if (instance == nullptr || instance->glass == nullptr) {
+      continue;
+    }
+    auto material = GlassMaterial::fromPreset(panel.glassPreset, panel.glassRefractionStrength);
+    material.opacity = panel.glassOpacity;
+    material.blurMix = panel.glassBlurIntensity;
+    static_cast<GlassNode*>(instance->glass)->setMaterial(material);
+  }
+  requestRedraw();
 }
 
 void Bar::closeAllInstances() {
@@ -3073,7 +3094,11 @@ void Bar::applyBackgroundPalette(BarInstance& instance) {
     return;
   }
   auto style = instance.bg->style();
-  style.fill = colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity);
+  // GlassNode is the sole background material in glass mode. Keeping the bar
+  // Box's normal surface fill here would stack an opaque theme-colored layer
+  // over the wallpaper-derived material.
+  const bool glass = instance.glass != nullptr;
+  style.fill = colorForRole(ColorRole::Surface, glass ? 0.0F : instance.barConfig.backgroundOpacity);
   style.border = resolveColorSpec(instance.barConfig.border);
   style.borderWidth = instance.barConfig.borderWidth;
   instance.bg->setStyle(style);
@@ -3263,6 +3288,17 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
     instance.slideRoot = instance.sceneRoot->addChild(std::move(slide));
 
     // Bar background
+    if (m_config != nullptr && m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass) {
+      auto glass = std::make_unique<GlassNode>();
+      glass->setOutput(instance.outputName, 0.0F, 0.0F);
+      auto material = GlassMaterial::fromPreset(
+          m_config->config().shell.panel.glassPreset, m_config->config().shell.panel.glassRefractionStrength
+      );
+      material.opacity = m_config->config().shell.panel.glassOpacity;
+      material.blurMix = m_config->config().shell.panel.glassBlurIntensity;
+      glass->setMaterial(material);
+      instance.glass = instance.slideRoot->addChild(std::move(glass));
+    }
     instance.bg = static_cast<Box*>(instance.slideRoot->addChild(ui::box()));
 
     // Shadow — bar shape copy rendered with large SDF softness to simulate a blurred drop shadow.
@@ -3367,8 +3403,9 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
   // Keep it exactly aligned with the shadow shape; the shadow shader now
   // draws only outside the rect, so any size mismatch is visible at corners.
   if (instance.bg != nullptr) {
+    const bool hasGlass = instance.glass != nullptr;
     const RoundedRectStyle bgStyle{
-        .fill = colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity),
+        .fill = colorForRole(ColorRole::Surface, hasGlass ? 0.0F : instance.barConfig.backgroundOpacity),
         .border = resolveColorSpec(instance.barConfig.border),
         .fillMode = FillMode::Solid,
         .corners = concave.corners,
@@ -3385,6 +3422,27 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
         barAreaW + concave.logicalInset.left + concave.logicalInset.right,
         barAreaH + concave.logicalInset.top + concave.logicalInset.bottom
     );
+    if (instance.glass != nullptr) {
+      const float glassX = barAreaX - concave.logicalInset.left;
+      const float glassY = barAreaY - concave.logicalInset.top;
+      instance.glass->setPosition(glassX, glassY);
+      instance.glass->setSize(
+          barAreaW + concave.logicalInset.left + concave.logicalInset.right,
+          barAreaH + concave.logicalInset.top + concave.logicalInset.bottom
+      );
+      auto* glass = static_cast<GlassNode*>(instance.glass);
+      float outputX = glassX;
+      float outputY = glassY;
+      if (m_platform != nullptr) {
+        if (const auto* output = m_platform->findOutputByWl(instance.output); output != nullptr) {
+          const auto [surfaceX, surfaceY] = surfaceOriginForOutputLocal(instance, *output);
+          outputX += surfaceX;
+          outputY += surfaceY;
+        }
+      }
+      glass->setOutput(instance.outputName, outputX, outputY);
+      glass->setShape(concave.corners, concave.logicalInset, concave.radii);
+    }
   }
 
   instance.paletteConn = paletteChanged().connect([inst = &instance] {

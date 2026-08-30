@@ -1355,6 +1355,12 @@
         "none": "None",
         "start": "Start"
       },
+      "glass-preset": {
+        "bold": "Bold",
+        "clear": "Clear",
+        "frosted": "Frosted",
+        "subtle": "Subtle"
+      },
       "edge": {
         "bottom": "Bottom",
         "left": "Left",
@@ -2537,6 +2543,22 @@
         "transparency-mode": {
           "description": "Panel glass style, including floating panel opacity and card translucency",
           "label": "Transparency"
+        },
+        "glass-opacity": {
+          "description": "Opacity of the wallpaper-derived glass material",
+          "label": "Glass opacity"
+        },
+        "glass-preset": {
+          "description": "Base material treatment for wallpaper-derived glass",
+          "label": "Glass preset"
+        },
+        "glass-blur-intensity": {
+          "description": "Wallpaper blur sampled by glass surfaces only",
+          "label": "Blur strength"
+        },
+        "glass-refraction-strength": {
+          "description": "Direct multiplier for edge refraction and RGB splitting",
+          "label": "Refraction strength"
         }
       },
       "power": {

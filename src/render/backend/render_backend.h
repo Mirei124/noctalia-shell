@@ -4,6 +4,7 @@
 #include "render/core/mat3.h"
 #include "render/core/render_styles.h"
 #include "render/core/texture_handle.h"
+#include "render/glass/glass_material.h"
 
 #include <cstdint>
 #include <memory>
@@ -85,6 +86,25 @@ struct RenderGlyphDraw {
   Mat3 transform = Mat3::identity();
 };
 
+struct RenderGlassDraw {
+  TextureId sharpTexture;
+  TextureId blurredTexture;
+  float surfaceWidth = 0.0F;
+  float surfaceHeight = 0.0F;
+  float width = 0.0F;
+  float height = 0.0F;
+  float outputWidth = 0.0F;
+  float outputHeight = 0.0F;
+  float outputX = 0.0F;
+  float outputY = 0.0F;
+  bool flipY = true;
+  GlassMaterial material{};
+  CornerShapes cornerShapes{};
+  RectInsets logicalInset{};
+  Radii radii{};
+  Mat3 transform = Mat3::identity();
+};
+
 struct RenderScissor {
   std::int32_t x = 0;
   std::int32_t y = 0;
@@ -139,6 +159,7 @@ public:
       const Mat3& transform
   ) = 0;
   virtual void drawImage(const RenderImageDraw& draw) = 0;
+  virtual void drawGlass(const RenderGlassDraw& draw) = 0;
   virtual void drawGlyph(const RenderGlyphDraw& draw) = 0;
   virtual void drawSpinner(
       float surfaceWidth, float surfaceHeight, float width, float height, const SpinnerStyle& style,
