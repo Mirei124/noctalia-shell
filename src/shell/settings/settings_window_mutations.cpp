@@ -102,9 +102,13 @@ void SettingsWindow::showTransientStatus(std::string message, bool isError) {
 }
 
 void SettingsWindow::setSettingOverride(std::vector<std::string> path, ConfigOverrideValue value) {
-  const bool enablesGlass = path == std::vector<std::string>{"shell", "panel", "transparency_mode"}
+  const bool changesTransparencyMode = path == std::vector<std::string>{"shell", "panel", "transparency_mode"}
       && std::holds_alternative<std::string>(value)
-      && std::get<std::string>(value) == "glass";
+      && m_config != nullptr;
+  const bool enablesGlass = changesTransparencyMode && std::get<std::string>(value) == "glass";
+  const bool disablesGlass = changesTransparencyMode
+      && m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass
+      && std::get<std::string>(value) != "glass";
   if (enablesGlass) {
     // Glass samples the wallpaper backdrop; persist the material prerequisites
     // atomically so selecting the effect cannot leave it with no source texture
@@ -119,6 +123,17 @@ void SettingsWindow::setSettingOverride(std::vector<std::string> path, ConfigOve
       }
     }
     setSettingOverrides(std::move(overrides));
+    return;
+  }
+
+  if (disablesGlass) {
+    // Enabling glass turns on the backdrop as its wallpaper sampling source. Without
+    // glass, that same surface is the legacy full-screen blurred/tinted backdrop, so
+    // leaving it enabled would make the Solid and Soft choices inherit its filter.
+    setSettingOverrides({
+        {std::move(path), std::move(value)},
+        {{"backdrop", "enabled"}, false},
+    });
     return;
   }
 
@@ -192,7 +207,12 @@ void SettingsWindow::clearSettingOverride(std::vector<std::string> path) {
     bool changed = false;
     const bool needsSceneRebuild = settingPathNeedsSceneRebuild(path);
     const auto previousResetPaths = currentPageResetPaths();
-    if (!m_config->clearOverrides({path}, &changed)) {
+    const bool resetsGlass = path == std::vector<std::string>{"shell", "panel", "transparency_mode"}
+        && m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass;
+    const bool success = resetsGlass
+        ? m_config->mutateOverrides({{{"backdrop", "enabled"}, false}}, {path}, &changed)
+        : m_config->clearOverrides({path}, &changed);
+    if (!success) {
       markSettingsWriteError(i18n::tr("settings.errors.write"));
       return;
     }
@@ -214,7 +234,13 @@ void SettingsWindow::clearSettingOverrides(std::vector<std::vector<std::string>>
     bool changed = false;
     const bool needsSceneRebuild = settingPathsNeedSceneRebuild(paths);
     const auto previousResetPaths = currentPageResetPaths();
-    const bool success = m_config->clearOverrides(paths, &changed);
+    const bool resetsGlass = m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass
+        && std::ranges::any_of(paths, [](const auto& path) {
+             return path == std::vector<std::string>{"shell", "panel", "transparency_mode"};
+           });
+    const bool success = resetsGlass
+        ? m_config->mutateOverrides({{{"backdrop", "enabled"}, false}}, paths, &changed)
+        : m_config->clearOverrides(paths, &changed);
     m_pendingResetPageScope.clear();
     if (!success) {
       markSettingsWriteError(i18n::tr("settings.errors.reset-page"));
