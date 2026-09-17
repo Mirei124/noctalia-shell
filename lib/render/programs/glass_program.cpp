@@ -19,7 +19,6 @@ void main() {
 )";
   constexpr char kFragment[] = R"(
 precision highp float;
-uniform sampler2D u_sharp;
 uniform sampler2D u_blurred;
 uniform vec2 u_rect_size;
 uniform vec2 u_output_size;
@@ -98,26 +97,14 @@ void main() {
   if (u_flip_y > 0.5) uv.y = 1.0 - uv.y;
   vec2 shift = normal * edge * u_material.y / u_output_size;
   vec2 chroma = normal * edge * u_material.z / u_output_size;
-  // All channels remain in the same shared FBO. This keeps the Wayfire/Mesa
-  // path reliable while giving the rim the subtle spectral split of glass.
-  vec3 blurred = vec3(
+  // Refract the pre-blurred wallpaper for every channel. Using the same
+  // source across the surface keeps the rim as blurred as the interior;
+  // only displacement and RGB separation increase toward the edge.
+  vec3 sampled = vec3(
       texture2D(u_blurred, uv + shift + chroma).r,
       texture2D(u_blurred, uv + shift).g,
       texture2D(u_blurred, uv + shift - chroma).b
   );
-  // The blurred source alone hides sub-pixel channel separation. Take the
-  // rim's detail from the matching shared sharp texture, with the same
-  // in-texture RGB split. This remains safe on the Wayfire/Mesa path because
-  // every channel comes from one texture for each sample.
-  vec3 sharp = vec3(
-      texture2D(u_sharp, uv + shift + chroma).r,
-      texture2D(u_sharp, uv + shift).g,
-      texture2D(u_sharp, uv + shift - chroma).b
-  );
-  // Refraction needs local contrast. Keep the interior frosted, but let the
-  // rim draw predominantly from the sharp wallpaper so displacement and RGB
-  // separation remain visible even when the glass blur is turned up.
-  vec3 sampled = mix(blurred, sharp, edge * 0.78);
   float rim = pow(clamp(edge, 0.0, 1.0), 2.0) * u_material.w;
   // Tint alpha controls only the material tint. Grain has its own much
   // smaller parameter; coupling it to tint alpha turns the panel into visible
@@ -143,7 +130,6 @@ void GlassProgram::ensureInitialized() {
   m_outputSize = glGetUniformLocation(id, "u_output_size");
   m_outputTransform = glGetUniformLocation(id, "u_output_transform");
   m_flipY = glGetUniformLocation(id, "u_flip_y");
-  m_sharp = glGetUniformLocation(id, "u_sharp");
   m_blurred = glGetUniformLocation(id, "u_blurred");
   m_tint = glGetUniformLocation(id, "u_tint");
   m_border = glGetUniformLocation(id, "u_border");
@@ -162,7 +148,6 @@ void GlassProgram::ensureInitialized() {
       || m_outputSize < 0
       || m_outputTransform < 0
       || m_flipY < 0
-      || m_sharp < 0
       || m_blurred < 0
       || m_transform < 0
       || m_cornerShapes < 0
@@ -175,20 +160,17 @@ void GlassProgram::ensureInitialized() {
 void GlassProgram::destroy() { m_program.destroy(); }
 void GlassProgram::abandon() noexcept { m_program.abandon(); }
 void GlassProgram::draw(
-    TextureId sharp, TextureId blurred, float sw, float sh, float w, float h, float ow, float oh,
+    TextureId blurred, float sw, float sh, float w, float h, float ow, float oh,
     const Mat3& outputTransform, bool flipY, const GlassMaterial& m, const CornerShapes& corners,
     const RectInsets& inset, const Radii& radii, const Mat3& transform
 ) const {
-  if (!m_program.isValid() || sharp == TextureId{} || blurred == TextureId{} || w <= 0 || h <= 0 || ow <= 0 || oh <= 0)
+  if (!m_program.isValid() || blurred == TextureId{} || w <= 0 || h <= 0 || ow <= 0 || oh <= 0)
     return;
   static constexpr float quad[] = {0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1};
   glUseProgram(m_program.id());
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(sharp.value()));
-  glUniform1i(m_sharp, 0);
-  glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(blurred.value()));
-  glUniform1i(m_blurred, 1);
+  glUniform1i(m_blurred, 0);
   glUniform2f(m_surfaceSize, sw, sh);
   glUniform2f(m_rectSize, w, h);
   glUniform2f(m_outputSize, ow, oh);

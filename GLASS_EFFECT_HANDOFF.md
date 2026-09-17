@@ -78,7 +78,7 @@ macOS Liquid Glass 是视觉方向参考（透明、色调提高可读性、边�
 - 合成器背景 blur 是补充，不是玻璃源；若只有纯白/纯色层，先检查 backdrop 是否发布了 sharp/blur 纹理。
 - 不要把普通 `Box` 背景和 `GlassNode` 同时设为不透明。玻璃模式下，标准背景 box 只保留布局、圆角和裁剪，填充 alpha 应为零。
 - 玻璃噪点要非常低。把 tint alpha 当作噪点强度会产生明显颗粒感。
-- 折射在高 blur 下会被掩盖；排查时先将 blur 降低，再增大 refraction，或使用显眼的测试壁纸。
+- 中心、边缘折射与 RGB 色散统一采样预模糊壁纸，不混入 sharp 纹理，避免边缘变清晰。高 blur 下折射和色散会更柔和，这是预期行为；排查时可降低 blur、增大 refraction，或使用显眼的测试壁纸。
 - blur 不能在某个阈值突然启用，也不能将半径量化为整数 tap；当前 shader 为分数 tap 做权重衰减，半径调节应连续。
 - GLSL 的未使用 uniform 可能被驱动优化掉。`ensureInitialized()` 只能要求实际在 shader 中使用的 uniform，否则会出现 `failed to query ... shader locations`。
 - 第三方插件自行画出的任意 `ui.box` 无法由宿主可靠识别。当前自动玻璃化只覆盖 `DesktopWidget::setBackgroundStyle()` 创建的标准背景；若需自定义背景玻璃，应设计显式插件 API/manifest opt-in。
