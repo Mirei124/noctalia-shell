@@ -581,7 +581,7 @@ void GlesRenderBackend::drawImage(const RenderImageDraw& draw) {
 void GlesRenderBackend::drawGlass(const RenderGlassDraw& draw) {
   m_glassProgram.ensureInitialized();
   m_glassProgram.draw(
-      draw.sharpTexture, draw.blurredTexture, draw.surfaceWidth, draw.surfaceHeight, draw.width, draw.height,
+      draw.blurredTexture, draw.surfaceWidth, draw.surfaceHeight, draw.width, draw.height,
       draw.outputWidth, draw.outputHeight, draw.outputTransform, draw.flipY, draw.material, draw.cornerShapes,
       draw.logicalInset, draw.radii, draw.transform
   );
@@ -667,6 +667,7 @@ void GlesRenderBackend::destroyGpuObjects() {
   m_imageProgram.destroy();
   m_glyphProgram.destroy();
   m_spinnerProgram.destroy();
+  m_glassProgram.destroy();
   m_blurProgram.destroy();
   m_fullscreenTextureProgram.destroy();
   m_fullscreenTintProgram.destroy();
@@ -679,6 +680,7 @@ void GlesRenderBackend::abandonGpuObjects() noexcept {
   m_imageProgram.abandon();
   m_glyphProgram.abandon();
   m_spinnerProgram.abandon();
+  m_glassProgram.abandon();
   m_blurProgram.abandon();
   m_fullscreenTextureProgram.abandon();
   m_fullscreenTintProgram.abandon();
