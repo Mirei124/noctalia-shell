@@ -39,6 +39,11 @@ const noctalia::bar::WidgetDefinition<SysmonWidget::Options, SysmonWidgetDefinit
                           .labelKey = "settings.widgets.options.cpu-usage",
                       },
                       {
+                          .value = SysmonStat::LoadAvg,
+                          .configValue = "load_avg",
+                          .labelKey = "settings.widgets.options.load-avg",
+                      },
+                      {
                           .value = SysmonStat::CpuTemp,
                           .configValue = "cpu_temp",
                           .labelKey = "settings.widgets.options.cpu-temp",
@@ -114,6 +119,34 @@ const noctalia::bar::WidgetDefinition<SysmonWidget::Options, SysmonWidgetDefinit
                           .labelKey = "settings.widgets.options.net-tx",
                       },
                   },
+          }),
+          field<&Options::loadAvgPeriod>({
+              .key = "load_avg_period",
+              .choices = {
+                      {
+                          .value = SysmonLoadAvgPeriod::All,
+                          .configValue = "all",
+                          .labelKey = "settings.widgets.options.load-avg-all",
+                      },
+                      {
+                          .value = SysmonLoadAvgPeriod::One,
+                          .configValue = "1",
+                          .labelKey = "settings.widgets.options.load-avg-1",
+                      },
+                      {
+                          .value = SysmonLoadAvgPeriod::Five,
+                          .configValue = "5",
+                          .labelKey = "settings.widgets.options.load-avg-5",
+                      },
+                      {
+                          .value = SysmonLoadAvgPeriod::Fifteen,
+                          .configValue = "15",
+                          .labelKey = "settings.widgets.options.load-avg-15",
+                      },
+              },
+              .presentation = settings::WidgetSettingPresentation{
+                  .visibleWhen = settings::WidgetSettingVisibility{"stat", {"load_avg"}},
+              },
           }),
           field<&Options::diskPath>({
               .key = "path",

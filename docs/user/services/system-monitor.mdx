@@ -77,6 +77,7 @@ Bar and desktop `sysmon` widgets and the Control Center System tab all draw from
 | `disk_free`     | `380 GiB`  | Disk space available for the widget's `path`  | ✓   | —       |
 | `net_rx`        | `1.2 MB/s` | Network download speed (decimal, auto-scaled) | ✓   | ✓       |
 | `net_tx`        | `256 kB/s` | Network upload speed (decimal, auto-scaled)   | ✓   | ✓       |
+| `load_avg` | `0.42 / 0.38 / 0.31` | Load average over 1 / 5 / 15 minutes | ✓ | — |
 
 A stat whose source is unavailable on the machine - GPU VRAM on an integrated GPU, for example - is shown as unavailable rather than as zero. What each GPU vendor can report is covered under [GPU data sources](#gpu-data-sources).
 
@@ -118,7 +119,7 @@ Intel VRAM is reported only for discrete cards such as Intel Arc, and **requires
 
 ## Value highlighting
 
-Bar `sysmon` widgets tint their value (icon, text label, graph line, and gauge fill) toward the widget's `highlight_color` as the stat rises. Each stat has an **activity threshold** and a **critical threshold**, configured globally under `[system.monitor]`:
+Bar `sysmon` widgets tint their value (icon, text label, graph line, and gauge fill) toward the widget's `highlight_color` as the stat rises. Except for `load_avg`, which uses fixed thresholds of 50% and 100% of logical CPU capacity for its selected load period (1 minute when showing all three), each stat has an **activity threshold** and a **critical threshold**, configured globally under `[system.monitor]`:
 
 ```toml
 [system.monitor]

@@ -29,6 +29,7 @@ struct SystemStats;
 
 enum class SysmonStat {
   CpuUsage,
+  LoadAvg,
   CpuTemp,
   CpuFreq,
   GpuTemp,
@@ -45,12 +46,14 @@ enum class SysmonStat {
   NetRx,
   NetTx
 };
+enum class SysmonLoadAvgPeriod { All, One, Five, Fifteen };
 enum class SysmonVisualization { Graph, Gauge, None };
 
 class SysmonWidget : public Widget {
 public:
   struct Options {
     SysmonStat stat = SysmonStat::CpuUsage;
+    SysmonLoadAvgPeriod loadAvgPeriod = SysmonLoadAvgPeriod::All;
     std::string diskPath = "/";
     std::string glyph;
     std::string customImage;
@@ -107,12 +110,13 @@ private:
   std::optional<std::string> formatValueFor(SysmonStat stat, const SystemStats& stats) const;
   bool statAvailableForTooltip(SysmonStat stat, const SystemStats& stats) const;
   std::vector<TooltipRow> buildTooltipRows(const std::string& currentValue) const;
-  static double normalizedFromStats(
+  double normalizedFromStats(
       SysmonStat stat, const SystemStats& stats, double& tempMin, double& tempMax, std::string_view networkInterface
   );
 
   SystemMonitorService* m_monitor;
   SysmonStat m_stat;
+  SysmonLoadAvgPeriod m_loadAvgPeriod;
   SysmonVisualization m_visualization;
   bool m_showCpuCores = false;
   ColorSpec m_highlightColor = colorSpecFromRole(ColorRole::Error);
