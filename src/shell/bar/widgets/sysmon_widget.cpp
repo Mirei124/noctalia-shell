@@ -20,6 +20,7 @@
 #include <cmath>
 #include <format>
 #include <optional>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -103,6 +104,24 @@ namespace {
     return kActivityOnset + (1.0 - kActivityOnset) * t;
   }
 
+  [[nodiscard]] double loadValue(const SystemStats& stats, SysmonLoadAvgPeriod period) {
+    switch (period) {
+    case SysmonLoadAvgPeriod::Five:
+      return stats.loadAvg5;
+    case SysmonLoadAvgPeriod::Fifteen:
+      return stats.loadAvg15;
+    case SysmonLoadAvgPeriod::All:
+    case SysmonLoadAvgPeriod::One:
+      return stats.loadAvg1;
+    }
+    return stats.loadAvg1;
+  }
+
+  [[nodiscard]] double normalizedLoad(const SystemStats& stats, SysmonLoadAvgPeriod period) {
+    const auto cpuCount = std::max(1U, std::thread::hardware_concurrency());
+    return stats.loadAvgAvailable ? std::max(loadValue(stats, period), 0.0) / cpuCount : 0.0;
+  }
+
   bool needsCpuTemp(SysmonStat stat) { return stat == SysmonStat::CpuTemp; }
   bool needsGpuTemp(SysmonStat stat) { return stat == SysmonStat::GpuTemp; }
   bool needsGpuUsage(SysmonStat stat) { return stat == SysmonStat::GpuUsage; }
@@ -115,11 +134,12 @@ namespace {
         || stat == SysmonStat::DiskFree;
   }
 
-  constexpr std::array<SysmonStat, 16> kTooltipStats{
-      SysmonStat::CpuUsage,    SysmonStat::CpuTemp,  SysmonStat::CpuFreq,     SysmonStat::GpuTemp,
-      SysmonStat::GpuUsage,    SysmonStat::GpuVram,  SysmonStat::GpuVramUsed, SysmonStat::RamUsed,
-      SysmonStat::RamPct,      SysmonStat::SwapPct,  SysmonStat::DiskUsedPct, SysmonStat::DiskUsed,
-      SysmonStat::DiskFreePct, SysmonStat::DiskFree, SysmonStat::NetRx,       SysmonStat::NetTx,
+  constexpr std::array<SysmonStat, 17> kTooltipStats{
+      SysmonStat::LoadAvg,  SysmonStat::CpuUsage,    SysmonStat::CpuTemp,  SysmonStat::CpuFreq,
+      SysmonStat::GpuTemp,  SysmonStat::GpuUsage,    SysmonStat::GpuVram,  SysmonStat::GpuVramUsed,
+      SysmonStat::RamUsed,  SysmonStat::RamPct,      SysmonStat::SwapPct,  SysmonStat::DiskUsedPct,
+      SysmonStat::DiskUsed, SysmonStat::DiskFreePct, SysmonStat::DiskFree, SysmonStat::NetRx,
+      SysmonStat::NetTx,
   };
 
   double netRxFromStats(const SystemStats& stats, std::string_view interfaceName) {
@@ -144,8 +164,20 @@ namespace {
     return 0.0;
   }
 
-  std::string statDisplayName(SysmonStat stat) {
+  std::string statDisplayName(SysmonStat stat, SysmonLoadAvgPeriod period) {
     switch (stat) {
+    case SysmonStat::LoadAvg:
+      switch (period) {
+      case SysmonLoadAvgPeriod::One:
+        return i18n::tr("bar.widgets.sysmon.load-avg-1");
+      case SysmonLoadAvgPeriod::Five:
+        return i18n::tr("bar.widgets.sysmon.load-avg-5");
+      case SysmonLoadAvgPeriod::Fifteen:
+        return i18n::tr("bar.widgets.sysmon.load-avg-15");
+      case SysmonLoadAvgPeriod::All:
+        return i18n::tr("bar.widgets.sysmon.load-avg");
+      }
+      return i18n::tr("bar.widgets.sysmon.load-avg");
     case SysmonStat::CpuUsage:
       return i18n::tr("bar.widgets.sysmon.cpu");
     case SysmonStat::CpuTemp:
@@ -183,7 +215,7 @@ namespace {
 } // namespace
 
 SysmonWidget::SysmonWidget(SystemMonitorService* monitor, ConfigService& configService, Options options)
-    : m_monitor(monitor), m_stat(options.stat), m_visualization(options.visualization),
+    : m_monitor(monitor), m_stat(options.stat), m_loadAvgPeriod(options.loadAvgPeriod), m_visualization(options.visualization),
       m_showCpuCores(options.showCpuCores), m_highlightColor(options.highlightColor), m_configService(configService),
       m_showGlyph(options.showGlyph), m_showValue(options.showValue),
       m_labelMinWidth(static_cast<float>(options.labelMinWidth)),
@@ -491,6 +523,8 @@ LayoutSize SysmonWidget::layoutIdentityGroup(float gap) {
 std::pair<double, double> SysmonWidget::currentThresholds() const {
   const auto& monitorConfig = m_configService.config().system.monitor;
   switch (m_stat) {
+  case SysmonStat::LoadAvg:
+    return {0.5, 1.0};
   case SysmonStat::CpuUsage:
     return {monitorConfig.cpuUsageActivityThreshold, monitorConfig.cpuUsageCriticalThreshold};
   case SysmonStat::CpuTemp:
@@ -539,6 +573,8 @@ double SysmonWidget::currentGradientValue() {
 
   const auto stats = m_monitor->latest();
   switch (m_stat) {
+  case SysmonStat::LoadAvg:
+    return statAvailableForTooltip(m_stat, stats) ? normalizedLoad(stats, m_loadAvgPeriod) : 0.0;
   case SysmonStat::CpuUsage:
     return std::max(stats.cpuUsagePercent, 0.0);
   case SysmonStat::CpuTemp:
@@ -865,7 +901,11 @@ void SysmonWidget::doUpdate(Renderer& renderer) {
     syncGaugeProgress(currentNormalized());
   } else if (m_visualization == SysmonVisualization::Graph) {
     if (m_monitor != nullptr && m_monitor->isRunning()) {
-      updateGraph(renderer);
+      if (m_stat == SysmonStat::LoadAvg && !statAvailableForTooltip(m_stat, m_monitor->latest())) {
+        clearGraph();
+      } else {
+        updateGraph(renderer);
+      }
     } else {
       clearGraph();
     }
@@ -987,6 +1027,8 @@ double SysmonWidget::normalizedFromStats(
     SysmonStat stat, const SystemStats& stats, double& tempMin, double& tempMax, std::string_view networkInterface
 ) {
   switch (stat) {
+  case SysmonStat::LoadAvg:
+    return std::clamp(normalizedLoad(stats, m_loadAvgPeriod), 0.0, 1.0);
   case SysmonStat::CpuUsage:
     return stats.cpuUsagePercent / 100.0;
 
@@ -1096,6 +1138,10 @@ double SysmonWidget::currentNormalized() {
     return std::clamp((100.0 - static_cast<double>(m_monitor->diskUsagePercent(m_diskPath))) / 100.0, 0.0, 1.0);
   }
 
+  if (m_stat == SysmonStat::LoadAvg && !statAvailableForTooltip(m_stat, m_monitor->latest())) {
+    return 0.0;
+  }
+
   return std::clamp(
       normalizedFromStats(m_stat, m_monitor->latest(), m_tempMin, m_tempMax, m_networkInterface), 0.0, 1.0
   );
@@ -1135,6 +1181,14 @@ std::optional<std::string> SysmonWidget::formatValueFor(SysmonStat stat, const S
   }
 
   switch (stat) {
+  case SysmonStat::LoadAvg:
+    if (statAvailableForTooltip(stat, stats)) {
+      if (m_loadAvgPeriod != SysmonLoadAvgPeriod::All) {
+        return std::format("{:.2F}", loadValue(stats, m_loadAvgPeriod));
+      }
+      return std::format("{:.2F} / {:.2F} / {:.2F}", stats.loadAvg1, stats.loadAvg5, stats.loadAvg15);
+    }
+    return std::nullopt;
   case SysmonStat::CpuUsage:
     return std::format("{:.0F}%", stats.cpuUsagePercent);
 
@@ -1216,6 +1270,8 @@ bool SysmonWidget::statAvailableForTooltip(SysmonStat stat, const SystemStats& s
   const bool sampled = stats.sampledAt != std::chrono::steady_clock::time_point{};
 
   switch (stat) {
+  case SysmonStat::LoadAvg:
+    return monitorConfig.cpuPollSeconds > 0.0F && stats.loadAvgAvailable;
   case SysmonStat::CpuUsage:
     return monitorConfig.cpuPollSeconds > 0.0F && sampled;
   case SysmonStat::CpuTemp:
@@ -1257,7 +1313,7 @@ bool SysmonWidget::statAvailableForTooltip(SysmonStat stat, const SystemStats& s
 
 std::vector<TooltipRow> SysmonWidget::buildTooltipRows(const std::string& currentValue) const {
   std::vector<TooltipRow> rows;
-  rows.push_back({statDisplayName(m_stat), currentValue});
+  rows.push_back({statDisplayName(m_stat, m_loadAvgPeriod), currentValue});
 
   if (m_monitor == nullptr || !m_monitor->isRunning()) {
     return rows;
@@ -1272,7 +1328,7 @@ std::vector<TooltipRow> SysmonWidget::buildTooltipRows(const std::string& curren
       continue;
     }
     if (auto value = formatValueFor(stat, stats); value.has_value()) {
-      rows.push_back({statDisplayName(stat), std::move(*value)});
+      rows.push_back({statDisplayName(stat, m_loadAvgPeriod), std::move(*value)});
     }
   }
 
@@ -1281,6 +1337,8 @@ std::vector<TooltipRow> SysmonWidget::buildTooltipRows(const std::string& curren
 
 const char* SysmonWidget::glyphName(SysmonStat stat) {
   switch (stat) {
+  case SysmonStat::LoadAvg:
+    return "performance";
   case SysmonStat::CpuUsage:
     return "cpu-usage";
   case SysmonStat::CpuTemp:

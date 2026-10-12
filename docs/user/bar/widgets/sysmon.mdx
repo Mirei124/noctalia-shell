@@ -29,6 +29,7 @@ System resource monitor. Shows a configurable combination of a glyph, visualizat
 | `peek`                         | bool   | `false`       | Show only the glyph group and reveal the visualization and value on hover, on the side set by `glyph_position`. See [Peek](/noctalia/bar/widgets/#peek)             |
 | `peek_delay_ms`                | int    | `100`         | Hover time before the visualization and value reveal, from `0` to `2000` ms                                                                                         |
 | `highlight_color`              | string | `"error"`     | Color role (or fixed hex) the value tints toward as the stat rises past its activity/critical thresholds. See [System Monitor](/noctalia/services/system-monitor/). |
+| `load_avg_period` | string | `"all"` | For `load_avg`: `"all"` shows 1 / 5 / 15 minutes; `"1"`, `"5"`, or `"15"` shows only that period |
 
 `custom_label` is independent of the glyph slot. Keep `show_glyph` enabled to display the glyph or custom image beside the label, or disable it for a text-only identity.
 
@@ -44,6 +45,12 @@ type       = "sysmon"
 stat       = "cpu_usage"
 visualization = "graph"
 show_value    = false
+
+[widget.load]
+type = "sysmon"
+stat = "load_avg"
+load_avg_period = "all"  # all | 1 | 5 | 15 (string)
+visualization = "none"
 
 [widget.temp]
 type = "sysmon"
@@ -70,3 +77,5 @@ network_speed_unit           = "mb" # auto | kb | mb
 network_speed_compact        = true # show "1.2M" instead of "1.2 MB/s"
 network_speed_decimal_places = 2    # show values such as "1.23M"
 ```
+
+`load_avg` displays the 1 / 5 / 15 minute load averages with two decimal places. Set `load_avg_period` to `"1"`, `"5"`, or `"15"` to show a single value instead. Its graph, gauge, and highlighting use the selected period (1 minute for `"all"`), with the load divided by the number of logical CPUs, with a full gauge at one runnable or waiting task per CPU. Highlighting starts above half that capacity and reaches full intensity at capacity. The text remains the raw load average values, including values above capacity. CPU sampling must be enabled; unavailable samples display `--`.

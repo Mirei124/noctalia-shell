@@ -46,6 +46,7 @@ struct SystemStats {
   double netRxBytesPerSec{0.0};
   double netTxBytesPerSec{0.0};
   std::unordered_map<std::string, NetThroughput> netThroughputByInterface;
+  bool loadAvgAvailable{false};
   double loadAvg1{0.0};
   double loadAvg5{0.0};
   double loadAvg15{0.0};

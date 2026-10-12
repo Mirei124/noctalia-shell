@@ -1329,11 +1329,15 @@ void SystemMonitorService::samplingLoop() {
         prevCpu = currentCpu;
       }
 
-      if (const auto la = readLoadAvg(); la.has_value()) {
+      {
+        const auto la = readLoadAvg();
         std::scoped_lock lock{m_statsMutex};
-        m_latest.loadAvg1 = (*la)[0];
-        m_latest.loadAvg5 = (*la)[1];
-        m_latest.loadAvg15 = (*la)[2];
+        m_latest.loadAvgAvailable = la.has_value();
+        if (la.has_value()) {
+          m_latest.loadAvg1 = (*la)[0];
+          m_latest.loadAvg5 = (*la)[1];
+          m_latest.loadAvg15 = (*la)[2];
+        }
       }
 
       if (m_cpuTempRefs.load(std::memory_order_relaxed) > 0) {

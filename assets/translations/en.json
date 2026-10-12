@@ -179,6 +179,10 @@
         "gpu-temp": "GPU Temp",
         "gpu-usage": "GPU Usage",
         "gpu-vram": "GPU VRAM",
+        "load-avg": "Load average (1 / 5 / 15 min)",
+        "load-avg-1": "Load average (1 min)",
+        "load-avg-5": "Load average (5 min)",
+        "load-avg-15": "Load average (15 min)",
         "ram": "RAM",
         "swap": "Swap",
         "system": "System",
@@ -4539,6 +4543,11 @@
         "input": "Input",
         "instance": "Per Placement",
         "kilobytes": "kB/s",
+        "load-avg": "Load average (1 / 5 / 15 min)",
+        "load-avg-all": "All (1 / 5 / 15 minutes)",
+        "load-avg-1": "1 minute",
+        "load-avg-5": "5 minutes",
+        "load-avg-15": "15 minutes",
         "megabytes": "MB/s",
         "minimal": "Minimal",
         "name": "Name",
@@ -4986,6 +4995,10 @@
         "network-speed-decimal-places": {
           "description": "Number of decimal places shown for compact network speeds, from 0 to 3",
           "label": "Network Speed Decimal Places"
+        },
+        "load-avg-period": {
+          "description": "Show all load averages or select one period. Graph, gauge, and highlighting follow the selected period (1 minute for All).",
+          "label": "Load average period"
         },
         "network-speed-unit": {
           "description": "Unit used for network receive and transmit speeds; Auto switches between B/s, kB/s, MB/s, and GB/s",
