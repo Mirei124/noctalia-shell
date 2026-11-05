@@ -649,6 +649,7 @@ void GlesRenderBackend::destroyGpuObjects() {
   m_imageProgram.destroy();
   m_glyphProgram.destroy();
   m_spinnerProgram.destroy();
+  m_glassProgram.destroy();
   m_blurProgram.destroy();
   m_fullscreenTextureProgram.destroy();
   m_fullscreenTintProgram.destroy();
@@ -661,6 +662,7 @@ void GlesRenderBackend::abandonGpuObjects() noexcept {
   m_imageProgram.abandon();
   m_glyphProgram.abandon();
   m_spinnerProgram.abandon();
+  m_glassProgram.abandon();
   m_blurProgram.abandon();
   m_fullscreenTextureProgram.abandon();
   m_fullscreenTintProgram.abandon();

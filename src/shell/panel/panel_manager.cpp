@@ -3040,7 +3040,8 @@ void PanelManager::placePanelChrome() {
       m_panelOutputVisualRect = panelInputRectForSurface(
           m_layerSurface->anchor(), m_layerSurface->marginTop(), m_layerSurface->marginRight(),
           m_layerSurface->marginBottom(), m_layerSurface->marginLeft(), output->effectiveLogicalWidth(),
-          output->effectiveLogicalHeight(), width, height, m_panelInsetX, m_panelInsetY,
+          output->effectiveLogicalHeight(), static_cast<std::uint32_t>(std::lround(w)),
+          static_cast<std::uint32_t>(std::lround(h)), m_panelInsetX, m_panelInsetY,
           static_cast<std::uint32_t>(std::lround(panelW)), static_cast<std::uint32_t>(std::lround(panelH))
       );
     }
