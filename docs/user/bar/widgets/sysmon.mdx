@@ -29,7 +29,7 @@ System resource monitor. Shows a configurable combination of a glyph, visualizat
 | `peek`                         | bool   | `false`       | Show only the glyph group and reveal the visualization and value on hover, on the side set by `glyph_position`. See [Peek](/noctalia/bar/widgets/#peek)             |
 | `peek_delay_ms`                | int    | `100`         | Hover time before the visualization and value reveal, from `0` to `2000` ms                                                                                         |
 | `highlight_color`              | string | `"error"`     | Color role (or fixed hex) the value tints toward as the stat rises past its activity/critical thresholds. See [System Monitor](/noctalia/services/system-monitor/). |
-| `load_avg_period` | string | `"all"` | For `load_avg`: `"all"` shows 1 / 5 / 15 minutes; `"1"`, `"5"`, or `"15"` shows only that period |
+| `load_avg_period`              | string | `"all"`       | For `load_avg`: `"all"` shows 1 / 5 / 15 minutes; `"1"`, `"5"`, or `"15"` shows only that period                                                                    |
 
 `custom_label` is independent of the glyph slot. Keep `show_glyph` enabled to display the glyph or custom image beside the label, or disable it for a text-only identity.
 

@@ -216,9 +216,8 @@ void SettingsWindow::clearSettingOverride(std::vector<std::string> path) {
     const auto previousResetPaths = currentPageResetPaths();
     const bool resetsGlass = path == std::vector<std::string>{"shell", "panel", "transparency_mode"}
         && m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass;
-    const bool success = resetsGlass
-        ? m_config->mutateOverrides({{{"backdrop", "enabled"}, false}}, {path}, &changed)
-        : m_config->clearOverrides({path}, &changed);
+    const bool success = resetsGlass ? m_config->mutateOverrides({{{"backdrop", "enabled"}, false}}, {path}, &changed)
+                                     : m_config->clearOverrides({path}, &changed);
     if (!success) {
       markSettingsWriteError(i18n::tr("settings.errors.write"));
       return;
@@ -243,11 +242,10 @@ void SettingsWindow::clearSettingOverrides(std::vector<std::vector<std::string>>
     const auto previousResetPaths = currentPageResetPaths();
     const bool resetsGlass = m_config->config().shell.panel.transparencyMode == PanelTransparencyMode::Glass
         && std::ranges::any_of(paths, [](const auto& path) {
-             return path == std::vector<std::string>{"shell", "panel", "transparency_mode"};
-           });
-    const bool success = resetsGlass
-        ? m_config->mutateOverrides({{{"backdrop", "enabled"}, false}}, paths, &changed)
-        : m_config->clearOverrides(paths, &changed);
+                               return path == std::vector<std::string>{"shell", "panel", "transparency_mode"};
+                             });
+    const bool success = resetsGlass ? m_config->mutateOverrides({{{"backdrop", "enabled"}, false}}, paths, &changed)
+                                     : m_config->clearOverrides(paths, &changed);
     m_pendingResetPageScope.clear();
     if (!success) {
       markSettingsWriteError(i18n::tr("settings.errors.reset-page"));

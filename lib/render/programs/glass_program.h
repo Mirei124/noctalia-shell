@@ -14,8 +14,8 @@ public:
   void destroy();
   void abandon() noexcept;
   void draw(
-      TextureId blurred, float surfaceWidth, float surfaceHeight, float width, float height,
-      float outputWidth, float outputHeight, const Mat3& outputTransform, bool flipY, const GlassMaterial& material,
+      TextureId blurred, float surfaceWidth, float surfaceHeight, float width, float height, float outputWidth,
+      float outputHeight, const Mat3& outputTransform, bool flipY, const GlassMaterial& material,
       const CornerShapes& cornerShapes, const RectInsets& logicalInset, const Radii& radii,
       const Mat3& transform = Mat3::identity()
   ) const;

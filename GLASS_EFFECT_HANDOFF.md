@@ -8,22 +8,22 @@
 
 没有复制或移植第三方代码。首轮调研（`GLASS_EFFECT_RESEARCH.md`，2026-08-30）实际参考了下列项目；链接和可借鉴范围在此保留，避免后续重新搜寻。
 
-| 项目 | 有用的参考点 | 对本实现的结论 |
-| --- | --- | --- |
-| [OverShifted/LiquidGlass](https://github.com/OverShifted/LiquidGlass) | C++/OpenGL 的 framebuffer、独立 blur pass、squircle SDF 折射，以及 blur/noise/glow 参数组织 | 首选的管线和参数设计参考。其依赖自有 OverEngine 与 ImGui，不能整体移植；仅吸收 shader 数学与资源组织思想。调研时项目页标注 MIT License。 |
-| [zaroutt/Niri-glass](https://github.com/zaroutt/Niri-glass) | `clipped_surface.frag` 的 Niri 液态玻璃视觉参数：refraction strength/power、edge lighting、vibrancy、lens distortion、fringing | 用作视觉和 shader 参数参考。它直接修改 compositor 并采样 compositor 背景，架构不适用于仅使用壁纸的 Noctalia；若复制任何代码，须先单独确认许可证。 |
-| [ybouane/liquidglass](https://github.com/ybouane/liquidglass) | WebGL 的背景裁剪、Gaussian blur、refraction、色散、Fresnel、specular、inner rim、shadow 管线 | 用作材质拆分和可调参数参考。其 DOM snapshot 输入不适用于 Wayland；Noctalia 将输入替换为输出级壁纸纹理。调研时项目页标注 MIT License。 |
-| [Hla-aung/liquid-glass](https://github.com/Hla-aung/liquid-glass) | Snell 定律折射、displacement map、Fresnel rim 和多种 lens profile，尤其是 `ConvexSquircle` | 用作光学公式/边缘模型参考，不作为运行时依赖。调研时项目页标注 MIT License。 |
+| 项目                                                                    | 有用的参考点                                                                                                           | 对本实现的结论                                                                                       |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [OverShifted/LiquidGlass](https://github.com/OverShifted/LiquidGlass) | C++/OpenGL 的 framebuffer、独立 blur pass、squircle SDF 折射，以及 blur/noise/glow 参数组织                                    | 首选的管线和参数设计参考。其依赖自有 OverEngine 与 ImGui，不能整体移植；仅吸收 shader 数学与资源组织思想。调研时项目页标注 MIT License。       |
+| [zaroutt/Niri-glass](https://github.com/zaroutt/Niri-glass)           | `clipped_surface.frag` 的 Niri 液态玻璃视觉参数：refraction strength/power、edge lighting、vibrancy、lens distortion、fringing | 用作视觉和 shader 参数参考。它直接修改 compositor 并采样 compositor 背景，架构不适用于仅使用壁纸的 Noctalia；若复制任何代码，须先单独确认许可证。 |
+| [ybouane/liquidglass](https://github.com/ybouane/liquidglass)         | WebGL 的背景裁剪、Gaussian blur、refraction、色散、Fresnel、specular、inner rim、shadow 管线                                     | 用作材质拆分和可调参数参考。其 DOM snapshot 输入不适用于 Wayland；Noctalia 将输入替换为输出级壁纸纹理。调研时项目页标注 MIT License。      |
+| [Hla-aung/liquid-glass](https://github.com/Hla-aung/liquid-glass)     | Snell 定律折射、displacement map、Fresnel rim 和多种 lens profile，尤其是 `ConvexSquircle`                                    | 用作光学公式/边缘模型参考，不作为运行时依赖。调研时项目页标注 MIT License。                                                  |
 
 ### 后续延伸阅读（非本次实现参考）
 
 下列项目是在编写本交接文档时补充检索的运行时资料；它们**没有**参与本次玻璃架构、shader 或参数的设计和编码。Wayfire 是实际测试合成器，相关日志仅用于兼容性验证。
 
-| 项目 | 有用的参考点 | 对本实现的结论 |
-| --- | --- | --- |
-| [KWin Blur effect](https://github.com/KDE/kwin/tree/master/src/effects/blur) | 离屏 blur 与区域/损伤处理 | 后续若优化 blur 缓存可阅读；未用于本次实现。 |
+| 项目                                                                                                                          | 有用的参考点                   | 对本实现的结论                                          |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------ |
+| [KWin Blur effect](https://github.com/KDE/kwin/tree/master/src/effects/blur)                                                | 离屏 blur 与区域/损伤处理         | 后续若优化 blur 缓存可阅读；未用于本次实现。                        |
 | [Wayfire](https://github.com/WayfireWM/wayfire) 的 [blur 配置说明](https://github.com/WayfireWM/wayfire/wiki/Configuration#blur) | compositor blur 的开关及性能约束 | 实际测试环境；用于确认不应依赖 compositor blur 作为壁纸采样源，并未借鉴其实现。 |
-| [SceneFX](https://github.com/wlrfx/scenefx) | wlroots 场景图效果的后续参考 | 后续扩展圆角/裁剪/blur 时可阅读；未用于本次实现。 |
+| [SceneFX](https://github.com/wlrfx/scenefx)                                                                                 | wlroots 场景图效果的后续参考       | 后续扩展圆角/裁剪/blur 时可阅读；未用于本次实现。                     |
 
 macOS Liquid Glass 是视觉方向参考（透明、色调提高可读性、边缘光学效果），不是可复用的开源实现。
 
@@ -86,6 +86,7 @@ macOS Liquid Glass 是视觉方向参考（透明、色调提高可读性、边�
 ## 调试清单
 
 1. 用包含彩色网格、坐标文字和锐利边缘的壁纸验证位置、Y 翻转和折射。
+
 2. 确认日志包含：
 
    ```text
@@ -95,7 +96,9 @@ macOS Liquid Glass 是视觉方向参考（透明、色调提高可读性、边�
    ```
 
 3. 按顺序检查：输出名称是否匹配 → backdrop 是否发布 → `GlassNode` 是否可见 → 普通背景是否透明 → output transform 是否正确。
+
 4. 分别验证：顶/底 bar、水平/垂直 dock、浮动 panel、附着 panel、桌面小部件、旋转/镜像桌面小部件、多输出。
+
 5. 只改材质滑块时应触发重绘而非销毁重建 bar/dock/插件小部件。
 
 ## 后续候选工作

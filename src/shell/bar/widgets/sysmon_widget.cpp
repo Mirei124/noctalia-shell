@@ -215,10 +215,10 @@ namespace {
 } // namespace
 
 SysmonWidget::SysmonWidget(SystemMonitorService* monitor, ConfigService& configService, Options options)
-    : m_monitor(monitor), m_stat(options.stat), m_loadAvgPeriod(options.loadAvgPeriod), m_visualization(options.visualization),
-      m_showCpuCores(options.showCpuCores), m_highlightColor(options.highlightColor), m_configService(configService),
-      m_showGlyph(options.showGlyph), m_showValue(options.showValue),
-      m_labelMinWidth(static_cast<float>(options.labelMinWidth)),
+    : m_monitor(monitor), m_stat(options.stat), m_loadAvgPeriod(options.loadAvgPeriod),
+      m_visualization(options.visualization), m_showCpuCores(options.showCpuCores),
+      m_highlightColor(options.highlightColor), m_configService(configService), m_showGlyph(options.showGlyph),
+      m_showValue(options.showValue), m_labelMinWidth(static_cast<float>(options.labelMinWidth)),
       m_diskPath(FileUtils::expandUserPath(options.diskPath).string()),
       m_networkInterface(std::move(options.networkInterface)), m_networkSpeedUnit(options.networkSpeedUnit),
       m_networkSpeedLabelStyle(

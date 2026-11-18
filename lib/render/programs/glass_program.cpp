@@ -120,8 +120,9 @@ void main() {
 } // namespace
 
 void GlassProgram::ensureInitialized() {
-  if (m_program.isValid())
+  if (m_program.isValid()) {
     return;
+  }
   m_program.create(kVertex, kFragment);
   const auto id = m_program.id();
   m_position = glGetAttribLocation(id, "a_position");
@@ -154,18 +155,20 @@ void GlassProgram::ensureInitialized() {
       || m_logicalInset < 0
       || m_radii < 0
       || m_noise < 0
-      || m_opacity < 0)
+      || m_opacity < 0) {
     throw std::runtime_error("failed to query required glass shader locations");
+  }
 }
 void GlassProgram::destroy() { m_program.destroy(); }
 void GlassProgram::abandon() noexcept { m_program.abandon(); }
 void GlassProgram::draw(
-    TextureId blurred, float sw, float sh, float w, float h, float ow, float oh,
-    const Mat3& outputTransform, bool flipY, const GlassMaterial& m, const CornerShapes& corners,
-    const RectInsets& inset, const Radii& radii, const Mat3& transform
+    TextureId blurred, float sw, float sh, float w, float h, float ow, float oh, const Mat3& outputTransform,
+    bool flipY, const GlassMaterial& m, const CornerShapes& corners, const RectInsets& inset, const Radii& radii,
+    const Mat3& transform
 ) const {
-  if (!m_program.isValid() || blurred == TextureId{} || w <= 0 || h <= 0 || ow <= 0 || oh <= 0)
+  if (!m_program.isValid() || blurred == TextureId{} || w <= 0 || h <= 0 || ow <= 0 || oh <= 0) {
     return;
+  }
   static constexpr float quad[] = {0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1};
   glUseProgram(m_program.id());
   glActiveTexture(GL_TEXTURE0);

@@ -60,24 +60,24 @@ done
 
 Bar and desktop `sysmon` widgets and the Control Center System tab all draw from the same sampling thread, so they share one catalog of stats. Each widget picks one with `stat` (desktop graphs take an optional second with `stat2`).
 
-| Value           | Display    | Description                                   | Bar | Desktop |
-| --------------- | ---------- | --------------------------------------------- | --- | ------- |
-| `cpu_usage`     | `75%`      | CPU utilisation (all cores)                   | ✓   | ✓       |
-| `cpu_temp`      | `65°C`     | CPU package temperature                       | ✓   | ✓       |
-| `cpu_freq`      | `3.8 GHz`  | Average current CPU frequency                 | ✓   | ✓       |
-| `gpu_temp`      | `72°C`     | GPU temperature                               | ✓   | ✓       |
-| `gpu_usage`     | `48%`      | GPU utilisation                               | ✓   | ✓       |
-| `gpu_vram`      | `42%`      | GPU VRAM usage                                | ✓   | ✓       |
-| `ram_used`      | `4.2 GiB`  | RAM used (binary, auto-scaled)                | ✓   | —       |
-| `ram_pct`       | `26%`      | RAM used %                                    | ✓   | ✓       |
-| `swap_pct`      | `12%`      | Swap used %                                   | ✓   | ✓       |
-| `disk_used_pct` | `45%`      | Disk used % for the widget's `path`           | ✓   | —       |
-| `disk_used`     | `120 GiB`  | Disk space used for the widget's `path`       | ✓   | —       |
-| `disk_free_pct` | `55%`      | Disk free % for the widget's `path`           | ✓   | —       |
-| `disk_free`     | `380 GiB`  | Disk space available for the widget's `path`  | ✓   | —       |
-| `net_rx`        | `1.2 MB/s` | Network download speed (decimal, auto-scaled) | ✓   | ✓       |
-| `net_tx`        | `256 kB/s` | Network upload speed (decimal, auto-scaled)   | ✓   | ✓       |
-| `load_avg` | `0.42 / 0.38 / 0.31` | Load average over 1 / 5 / 15 minutes | ✓ | — |
+| Value           | Display              | Description                                   | Bar | Desktop |
+| --------------- | -------------------- | --------------------------------------------- | --- | ------- |
+| `cpu_usage`     | `75%`                | CPU utilisation (all cores)                   | ✓   | ✓       |
+| `cpu_temp`      | `65°C`               | CPU package temperature                       | ✓   | ✓       |
+| `cpu_freq`      | `3.8 GHz`            | Average current CPU frequency                 | ✓   | ✓       |
+| `gpu_temp`      | `72°C`               | GPU temperature                               | ✓   | ✓       |
+| `gpu_usage`     | `48%`                | GPU utilisation                               | ✓   | ✓       |
+| `gpu_vram`      | `42%`                | GPU VRAM usage                                | ✓   | ✓       |
+| `ram_used`      | `4.2 GiB`            | RAM used (binary, auto-scaled)                | ✓   | —       |
+| `ram_pct`       | `26%`                | RAM used %                                    | ✓   | ✓       |
+| `swap_pct`      | `12%`                | Swap used %                                   | ✓   | ✓       |
+| `disk_used_pct` | `45%`                | Disk used % for the widget's `path`           | ✓   | —       |
+| `disk_used`     | `120 GiB`            | Disk space used for the widget's `path`       | ✓   | —       |
+| `disk_free_pct` | `55%`                | Disk free % for the widget's `path`           | ✓   | —       |
+| `disk_free`     | `380 GiB`            | Disk space available for the widget's `path`  | ✓   | —       |
+| `net_rx`        | `1.2 MB/s`           | Network download speed (decimal, auto-scaled) | ✓   | ✓       |
+| `net_tx`        | `256 kB/s`           | Network upload speed (decimal, auto-scaled)   | ✓   | ✓       |
+| `load_avg`      | `0.42 / 0.38 / 0.31` | Load average over 1 / 5 / 15 minutes          | ✓   | —       |
 
 A stat whose source is unavailable on the machine - GPU VRAM on an integrated GPU, for example - is shown as unavailable rather than as zero. What each GPU vendor can report is covered under [GPU data sources](#gpu-data-sources).
 
